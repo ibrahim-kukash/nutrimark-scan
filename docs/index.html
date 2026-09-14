@@ -1,0 +1,644 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" href="data:,">
+<style>html{color-scheme:light}body{margin:0;font:14px system-ui}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>Nutri-Mark Scan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
+<style>
+  /* ---------- tokens: light (The Label) is the base ---------- */
+  :root{
+    --ground:#F5F5F3;
+    --surface:#FFFFFF;
+    --ink:#3A3F57;
+    --muted:#6E7389;
+    --hair:#D9DBE3;
+    --accent:#161CB7;
+    --cam:#14161F;
+    --paper:#F3EFE5;
+    --paper-ink:#23262F;
+    /* Official Nutri-Mark palette, QCC brand guideline V2 (Aug 2025) p4: Pantone 348C/360C/116C/715C/171C */
+    --A:#00833E; --B:#6DBE4B; --C:#FFCE02; --D:#F78D2B; --E:#F15E3E;
+    --shadow:0 18px 50px rgba(58,63,87,.18);
+    --page:#E9EAEE;
+    --font:"IBM Plex Sans Arabic","Segoe UI",Tahoma,Arial,sans-serif;
+  }
+  /* The Verdict (dark skin) */
+  .phone[data-look="verdict"]{
+    --ground:#1F2233;
+    --surface:#2A2E42;
+    --ink:#F5F5F3;
+    --muted:#A0A6BE;
+    --hair:#3A3F57;
+    --accent:#8A90F5;
+    --shadow:0 18px 50px rgba(0,0,0,.45);
+  }
+
+  /* The Scanner (camera-first skin): result rides over the live view as a sheet, grade pins to the pack */
+  .phone[data-look="scanner"]{
+    --ground:#0E1016;
+    --surface:#1E2130;
+    --ink:#F5F5F3;
+    --muted:#A0A6BE;
+    --hair:#3A3F57;
+    --accent:#8A90F5;
+    --shadow:0 18px 50px rgba(0,0,0,.5);
+  }
+  .phone[data-look="scanner"] #scan .head{position:absolute;top:0;left:0;right:0;z-index:2;color:#fff;
+    background:linear-gradient(180deg,rgba(0,0,0,.55),transparent)}
+  .phone[data-look="scanner"] .cam{position:absolute;inset:0;margin:0;border-radius:0}
+  .phone[data-look="scanner"] .frame{inset:84px 26px 150px}
+  .phone[data-look="scanner"] .sweep{top:84px}
+  .phone[data-look="scanner"] .label{transform:rotate(-3.5deg) translateY(-60px)}
+  .phone[data-look="scanner"] .label tr.lit td:last-child{background:#161CB7;color:#fff;border-radius:4px;padding-inline:4px}
+  .phone[data-look="scanner"] #result{
+    top:auto;bottom:0;height:62%;border-radius:26px 26px 0 0;
+    background:var(--surface);box-shadow:0 -14px 40px rgba(0,0,0,.5);z-index:3;padding-top:6px;
+  }
+  .phone[data-look="scanner"] #result::before{content:"";display:block;width:44px;height:5px;border-radius:3px;background:var(--hair);margin:4px auto 12px}
+  .phone[data-look="scanner"] #result .head,.phone[data-look="scanner"] #result .product{display:none}
+  .phone[data-look="scanner"] .verdict{min-height:96px;margin:4px 0 0}
+  .phone[data-look="scanner"] .letter{font-size:96px}
+  .badge{
+    position:absolute;top:-34px;right:-30px;width:66px;height:66px;border-radius:50%;
+    display:grid;place-items:center;font-weight:700;font-size:36px;color:#fff;background:var(--gcol,#F78D2B);
+    box-shadow:0 10px 26px rgba(0,0,0,.45),0 0 0 4px rgba(255,255,255,.92);transform:scale(0);opacity:0;z-index:2;
+  }
+  .badge.in{animation:land .55s cubic-bezier(.2,.9,.3,1.25) forwards}
+  .badge.C{color:#3A2A00}
+
+  html,body{height:100%}
+  body{
+    margin:0;background:var(--page);color:var(--ink);
+    font-family:var(--font);
+    -webkit-font-smoothing:antialiased;
+    padding:16px;box-sizing:border-box;
+    display:flex;flex-direction:column;align-items:center;gap:14px;
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{animation-duration:.01ms!important;transition-duration:.01ms!important}
+  }
+
+  /* ---------- prototype toolbar (outside the phone) ---------- */
+  .bar{
+    width:100%;max-width:390px;display:flex;justify-content:space-between;align-items:center;
+    font-size:13px;color:#5A5F76;
+  }
+  .bar .grp{display:flex;gap:2px;border:1px solid #C9CBD5;border-radius:8px;padding:2px;background:#fff}
+  .bar button{
+    font:inherit;font-size:13px;border:0;background:transparent;color:#5A5F76;
+    padding:5px 10px;border-radius:6px;cursor:pointer;
+  }
+  .bar button[aria-pressed="true"]{background:#3A3F57;color:#fff}
+  .bar button:focus-visible{outline:2px solid #161CB7;outline-offset:1px}
+
+  /* ---------- phone frame ---------- */
+  .phone{
+    width:390px;max-width:100%;height:780px;max-height:calc(100vh - 80px);
+    background:var(--ground);color:var(--ink);
+    border-radius:38px;box-shadow:var(--shadow);
+    overflow:hidden;position:relative;
+    transition:background .35s ease,color .35s ease;
+  }
+  @media (max-width:480px){
+    body{padding:8px}
+    .phone{height:calc(100vh - 60px);max-height:none;border-radius:24px}
+  }
+  .screen{
+    position:absolute;inset:0;display:flex;flex-direction:column;
+    transition:opacity .45s ease,transform .45s ease;
+  }
+  .screen[hidden]{display:none}
+  .screen.leaving{opacity:0;transform:translateY(-24px);pointer-events:none}
+  .screen.entering{opacity:0;transform:translateY(24px)}
+
+  /* ---------- intro ---------- */
+  .intro{padding:36px 22px 26px;justify-content:flex-start;align-items:stretch;gap:10px}
+  .stage{flex:0 0 auto;height:280px;display:grid;align-items:end;justify-items:center;padding-bottom:6px;position:relative}
+  .intro-actions{margin-top:auto}
+  .cycle{position:absolute;inset:0;display:grid;place-items:center;font-size:220px;font-weight:700;line-height:1;letter-spacing:-.05em;opacity:0;transform:scale(.3)}
+  .cycle.pop{animation:pop .26s cubic-bezier(.2,.9,.3,1.2) forwards}
+  @keyframes pop{0%{transform:scale(.55);opacity:.15}100%{transform:scale(1);opacity:1}}
+  .cycle.out{animation:cycleOut .45s ease forwards}
+  @keyframes cycleOut{0%{transform:scale(1);opacity:1}100%{transform:scale(.12);opacity:0}}
+  .miniband{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;width:min(100%,300px);opacity:0}
+  .miniband.in{opacity:1}
+  .miniband b{height:54px;border-radius:10px;display:grid;place-items:center;font-weight:700;font-size:21px;color:#fff;transform:scale(0)}
+  .miniband.in b{animation:cell .42s cubic-bezier(.2,.9,.3,1.25) forwards;animation-delay:calc(var(--i)*80ms)}
+  @keyframes cell{to{transform:scale(1)}}
+  .miniband b[data-g="A"]{background:var(--A)} .miniband b[data-g="B"]{background:var(--B)}
+  .miniband b[data-g="C"]{background:var(--C);color:#3A2A00} .miniband b[data-g="D"]{background:var(--D)} .miniband b[data-g="E"]{background:var(--E)}
+  .intro-copy{text-align:center;opacity:0;transform:translateY(12px);transition:opacity .5s ease,transform .5s ease}
+  .intro-copy.in{opacity:1;transform:none}
+  .intro-copy h1{font-size:30px;margin:0 0 6px;font-weight:700;letter-spacing:-.01em;text-wrap:balance}
+  .intro-copy p{margin:0 auto;max-width:30ch;color:var(--muted);font-size:15px;line-height:1.5;text-wrap:balance}
+  .intro-actions{display:flex;flex-direction:column;gap:12px;opacity:0;transform:translateY(12px);transition:opacity .5s ease,transform .5s ease}
+  .intro-actions.in{opacity:1;transform:none}
+  .langs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .langs button{font:inherit;font-size:15px;padding:12px;border-radius:12px;border:1px solid var(--hair);background:transparent;color:var(--ink);cursor:pointer}
+  .langs button[aria-pressed="true"]{background:var(--ink);color:var(--ground);border-color:var(--ink)}
+  .langs button:focus-visible,.go:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .go{font:inherit;font-size:16px;font-weight:600;padding:16px;border-radius:14px;border:0;background:var(--ink);color:var(--ground);cursor:pointer;transition:transform .1s}
+  .go:active{transform:scale(.985)}
+
+  /* ---------- header ---------- */
+  .head{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:18px 22px 10px;
+  }
+  .brand{display:flex;align-items:center;font-weight:600;font-size:15px}
+
+  /* ---------- scan screen ---------- */
+  .cam{
+    flex:1;margin:0 14px;border-radius:26px;background:var(--cam);position:relative;overflow:hidden;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .cam::after{content:"";position:absolute;inset:0;
+    background:radial-gradient(120% 90% at 50% 40%,transparent 55%,rgba(0,0,0,.55));pointer-events:none}
+  .frame{position:absolute;inset:34px 26px 128px;pointer-events:none}
+  .frame i{position:absolute;width:26px;height:26px;border:3px solid #fff;opacity:.9}
+  .frame i:nth-child(1){top:0;left:0;border-right:0;border-bottom:0;border-radius:8px 0 0 0}
+  .frame i:nth-child(2){top:0;right:0;border-left:0;border-bottom:0;border-radius:0 8px 0 0}
+  .frame i:nth-child(3){bottom:0;left:0;border-right:0;border-top:0;border-radius:0 0 0 8px}
+  .frame i:nth-child(4){bottom:0;right:0;border-left:0;border-top:0;border-radius:0 0 8px 0}
+  .sweep{
+    position:absolute;left:26px;right:26px;top:34px;height:3px;
+    background:linear-gradient(90deg,transparent,#fff,transparent);
+    box-shadow:0 0 18px 4px rgba(255,255,255,.55);opacity:0;pointer-events:none;
+  }
+  .scanning .sweep{animation:sweep 1.25s cubic-bezier(.4,0,.2,1) 1 forwards}
+  @keyframes sweep{0%{opacity:0;transform:translateY(0)}8%{opacity:1}92%{opacity:1}100%{opacity:0;transform:translateY(560px)}}
+
+  /* the fake package label */
+  .label{
+    width:264px;background:var(--paper);color:var(--paper-ink);border-radius:6px;
+    padding:14px 16px 12px;transform:rotate(-3.5deg) translateY(-34px);
+    box-shadow:0 20px 40px rgba(0,0,0,.5),inset 0 0 0 1px rgba(0,0,0,.08);
+    font-size:12.5px;line-height:1.4;direction:ltr;
+  }
+  .label h3{margin:0 0 2px;font-size:14px;font-weight:700;letter-spacing:.2px;display:flex;justify-content:space-between}
+  .label .sub{display:flex;justify-content:space-between;color:#55596A;border-bottom:2px solid #23262F;padding-bottom:5px;margin-bottom:4px;font-size:10.5px}
+  .label table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+  .label td{padding:3px 0;border-bottom:1px solid rgba(0,0,0,.12)}
+  .label td:last-child{text-align:right;font-weight:600}
+  .label td .ar{color:#55596A;font-size:10px;margin-left:4px}
+  .label tr.use td{transition:background .2s,box-shadow .2s}
+  .label tr.lit td{background:rgba(22,28,183,.10);box-shadow:inset 3px 0 0 var(--accent)}
+  .label tr.lit td:last-child{color:#161CB7}
+  .label .foot{font-size:9px;color:#6E7389;margin-top:6px}
+
+  .camfoot{
+    position:absolute;left:0;right:0;bottom:0;padding:14px 20px 18px;
+    display:flex;flex-direction:column;align-items:center;gap:12px;color:#fff;
+    background:linear-gradient(180deg,transparent,rgba(0,0,0,.55));
+  }
+  .hint{font-size:13.5px;opacity:.9;text-align:center;min-height:1.4em}
+  .shutter{
+    width:72px;height:72px;border-radius:50%;border:4px solid #fff;background:transparent;
+    display:grid;place-items:center;cursor:pointer;padding:0;
+    transition:transform .15s ease;
+  }
+  .shutter span{width:54px;height:54px;border-radius:50%;background:#fff;transition:transform .15s ease,background .2s}
+  .shutter:active span{transform:scale(.88)}
+  .shutter:focus-visible{outline:3px solid var(--accent);outline-offset:4px}
+  .scanning .shutter{pointer-events:none}
+  .scanning .shutter span{background:var(--accent);animation:pulse 1.1s ease-in-out infinite}
+  @keyframes pulse{50%{transform:scale(.82)}}
+  .counter{font-variant-numeric:tabular-nums}
+
+  /* ---------- result screen ---------- */
+  .result{padding:0 22px 18px;overflow:auto;scrollbar-width:none}
+  .result::-webkit-scrollbar{display:none}
+  .product{display:flex;align-items:center;gap:14px;margin:2px 0 14px}
+  .thumb{
+    width:64px;height:64px;border-radius:14px;flex:none;
+    background:linear-gradient(160deg,#E9C46A,#B8862B);position:relative;overflow:hidden;
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,.08);
+  }
+  .thumb::after{content:"";position:absolute;inset:12px 10px 0 10px;background:var(--paper);border-radius:4px 4px 0 0;opacity:.95}
+  .product h2{margin:0;font-size:19px;font-weight:600;line-height:1.25;text-wrap:balance}
+  .product p{margin:2px 0 0;font-size:12.5px;color:var(--muted)}
+
+  .band{direction:ltr;display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin:0 0 6px}
+  .band b{
+    height:44px;border-radius:9px;display:grid;place-items:center;
+    font-weight:700;font-size:18px;color:#fff;
+    background:var(--hair);opacity:.38;transform:scale(.94);
+    transition:background .35s ease,opacity .35s ease,transform .35s ease,box-shadow .35s;
+  }
+  .band b.on{opacity:1;transform:scale(1)}
+  .band b[data-g="A"].on{background:var(--A)} .band b[data-g="B"].on{background:var(--B)}
+  .band b[data-g="C"].on{background:var(--C);color:#3A2A00} .band b[data-g="D"].on{background:var(--D)}
+  .band b[data-g="E"].on{background:var(--E)}
+  .band b.hit{transform:scale(1.14);box-shadow:0 8px 22px rgba(0,0,0,.28);z-index:1}
+  .band b.dim{opacity:.32;transform:scale(.92)}
+
+  .verdict{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:2px 0 2px;min-height:128px}
+  .letter{
+    font-size:148px;line-height:.9;font-weight:700;letter-spacing:-.04em;
+    transform:scale(.4);opacity:0;transform-origin:center;display:block;
+  }
+  .letter.land{animation:land .55s cubic-bezier(.2,.9,.3,1.25) forwards}
+  @keyframes land{0%{transform:scale(.4);opacity:0}70%{transform:scale(1.08);opacity:1}100%{transform:scale(1);opacity:1}}
+  .letter.swap{animation:swap .42s ease forwards}
+  @keyframes swap{0%{transform:scale(1);opacity:1}40%{transform:scale(.78);opacity:.2}100%{transform:scale(1);opacity:1}}
+  .meaning{flex:1;font-size:16px;font-weight:500;line-height:1.35;color:var(--ink);opacity:0;transform:translateY(8px);transition:opacity .4s,transform .4s}
+  .meaning.in{opacity:1;transform:none}
+  .meaning small{display:block;font-size:12.5px;color:var(--muted);font-weight:400;margin-top:4px}
+
+  .reasons{display:flex;flex-direction:column;gap:6px;margin:2px 0 12px;padding:0;list-style:none}
+  .reasons li{
+    display:flex;align-items:center;gap:10px;font-size:14.5px;
+    opacity:0;transform:translateX(var(--slide,-14px));transition:opacity .35s,transform .35s;
+  }
+  [dir="rtl"] .reasons li{--slide:14px}
+  .reasons li.in{opacity:1;transform:none}
+  .reasons li i{width:9px;height:9px;border-radius:50%;flex:none;background:var(--gcol,var(--D))}
+
+  .values{
+    display:grid;grid-template-columns:repeat(4,1fr);gap:8px 6px;
+    border-top:1px solid var(--hair);border-bottom:1px solid var(--hair);padding:10px 0;margin:0 0 12px;
+    opacity:0;transition:opacity .45s;
+  }
+  .values.in{opacity:1}
+  .values div{display:flex;flex-direction:column;gap:2px}
+  .values dt{font-size:11px;color:var(--muted)}
+  .values dd{margin:0;font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
+  .values dd small{font-size:10.5px;font-weight:400;color:var(--muted);margin-inline-start:2px}
+  .per{font-size:11px;color:var(--muted);margin:-8px 0 10px}
+
+  .whatif{opacity:0;transform:translateY(10px);transition:opacity .45s,transform .45s;
+    background:var(--surface);border-radius:16px;padding:12px 14px 10px;margin:0 0 10px;
+    box-shadow:0 1px 0 var(--hair)}
+  .whatif.in{opacity:1;transform:none}
+  .whatif h4{margin:0 0 8px;font-size:14px;font-weight:600}
+  .whatif .row{display:flex;align-items:center;gap:12px}
+  .whatif input[type=range]{flex:1;accent-color:var(--accent);height:28px;margin:0}
+  .whatif output{font-variant-numeric:tabular-nums;font-size:13px;min-width:5.5em;text-align:end;color:var(--muted)}
+  .whatif .becomes{margin-top:6px;font-size:13.5px;min-height:1.3em}
+  .whatif .becomes b{font-size:16px;padding:0 6px;border-radius:6px;color:#fff;background:var(--gcol,var(--D))}
+  .whatif .becomes b.C{color:#3A2A00}
+
+  .foot{font-size:11px;color:var(--muted);line-height:1.45;margin:0 0 10px;opacity:0;transition:opacity .45s}
+  .foot.in{opacity:1}
+  .again{
+    width:100%;font:inherit;font-size:15px;font-weight:600;padding:14px;border-radius:14px;
+    border:0;background:var(--ink);color:var(--ground);cursor:pointer;
+    opacity:0;transition:opacity .45s,transform .1s;
+  }
+  .again.in{opacity:1}
+  .again:active{transform:scale(.985)}
+  .again:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+</style>
+
+<div class="bar" id="bar">
+  <div class="grp" role="group" aria-label="Language">
+    <button id="lang-ar" aria-pressed="true">عربي</button>
+    <button id="lang-en" aria-pressed="false">EN</button>
+  </div>
+  <div class="grp" role="group" aria-label="Look">
+    <button id="look-verdict" aria-pressed="true">Verdict</button>
+    <button id="look-label" aria-pressed="false">Label</button>
+    <button id="look-scanner" aria-pressed="false">Scanner</button>
+  </div>
+</div>
+
+<div class="phone" id="phone" data-look="verdict" dir="rtl" lang="ar">
+
+  <!-- INTRO -->
+  <section class="screen intro" id="intro">
+    <div class="stage">
+      <div class="cycle" id="cycle" aria-hidden="true">A</div>
+      <div class="miniband" id="miniband" dir="ltr" aria-label="Nutri-Mark A to E">
+        <b data-g="A" style="--i:0">A</b><b data-g="B" style="--i:1">B</b><b data-g="C" style="--i:2">C</b><b data-g="D" style="--i:3">D</b><b data-g="E" style="--i:4">E</b>
+      </div>
+    </div>
+    <div class="intro-copy" id="introCopy">
+      <h1 data-t="introTitle"></h1>
+      <p data-t="introLine"></p>
+    </div>
+    <div class="intro-actions" id="introActions">
+      <div class="langs" role="group" aria-label="Language">
+        <button id="ilang-ar" aria-pressed="true">عربي</button>
+        <button id="ilang-en" aria-pressed="false">English</button>
+      </div>
+      <button class="go" id="go" data-t="introGo"></button>
+    </div>
+  </section>
+
+  <!-- SCAN + READING -->
+  <section class="screen" id="scan" hidden>
+    <div class="head">
+      <div class="brand"><span data-t="title"></span></div>
+    </div>
+    <div class="cam" id="cam">
+      <div class="frame"><i></i><i></i><i></i><i></i></div>
+      <div class="sweep"></div>
+      <div class="label" id="label" aria-hidden="true">
+        <h3><span>Nutrition Facts</span><span>البيانات الغذائية</span></h3>
+        <div class="sub"><span>Per 100 g</span><span>لكل 100 غ</span></div>
+        <table>
+          <tr class="use" data-k="energy"><td>Energy <span class="ar">الطاقة</span></td><td>1407 kJ / 335 kcal</td></tr>
+          <tr><td>Fat <span class="ar">الدهون</span></td><td>5.0 g</td></tr>
+          <tr class="use" data-k="satfat"><td>of which saturates <span class="ar">المشبعة</span></td><td>3.5 g</td></tr>
+          <tr><td>Carbohydrate <span class="ar">الكربوهيدرات</span></td><td>72 g</td></tr>
+          <tr class="use" data-k="sugar"><td>of which sugars <span class="ar">السكريات</span></td><td>15 g</td></tr>
+          <tr class="use" data-k="fibre"><td>Fibre <span class="ar">الألياف</span></td><td>4.5 g</td></tr>
+          <tr class="use" data-k="protein"><td>Protein <span class="ar">البروتين</span></td><td>7.0 g</td></tr>
+          <tr class="use" data-k="salt"><td>Salt <span class="ar">الملح</span></td><td>0.5 g</td></tr>
+        </table>
+        <div class="foot">Honey breakfast cereal · حبوب إفطار بالعسل · Sample</div>
+      </div>
+      <div class="camfoot">
+        <div class="hint" id="hint"></div>
+        <button class="shutter" id="shutter" aria-label="Scan"><span></span></button>
+      </div>
+    </div>
+    <div style="height:14px"></div>
+  </section>
+
+  <!-- RESULT -->
+  <section class="screen result" id="result" hidden>
+    <div class="head" style="padding-inline:0">
+      <div class="brand"><span data-t="title"></span></div>
+    </div>
+
+    <div class="product">
+      <div class="thumb" aria-hidden="true"></div>
+      <div><h2 data-t="product"></h2><p data-t="brand"></p></div>
+    </div>
+
+    <div class="band" id="band" aria-label="Nutri-Mark A to E">
+      <b data-g="A">A</b><b data-g="B">B</b><b data-g="C">C</b><b data-g="D">D</b><b data-g="E">E</b>
+    </div>
+
+    <div class="verdict">
+      <span class="letter" id="letter">D</span>
+      <div class="meaning" id="meaning"></div>
+    </div>
+
+    <ul class="reasons" id="reasons"></ul>
+
+    <dl class="values" id="values"></dl>
+    <div class="per" data-t="per"></div>
+
+    <div class="whatif" id="whatif">
+      <h4 data-t="whatif"></h4>
+      <div class="row">
+        <input type="range" id="cut" min="0" max="40" step="5" value="0" aria-label="Sugar reduction">
+        <output id="cutout"></output>
+      </div>
+      <div class="becomes" id="becomes"></div>
+    </div>
+
+    <p class="foot" id="foot" data-t="foot"></p>
+    <button class="again" id="again" data-t="again"></button>
+  </section>
+</div>
+
+<script>
+  // ---------- strings ----------
+  const S = {
+    ar:{
+      title:"علامة التغذية",
+      introTitle:"علامة التغذية", introLine:"صوّر جدول القيم الغذائية على أي منتج، واحصل على درجته من A إلى E خلال ثوانٍ", introGo:"امسح منتجاً",
+      hint:"وجّه الكاميرا نحو جدول القيم الغذائية ثم اضغط",
+      reading:"جارٍ قراءة الملصق…", found:n=>`تم العثور على ${n} من 6`,
+      product:"حبوب إفطار بالعسل", brand:"منتج تجريبي للعرض · لكل 100 غ",
+      meaning:{A:"الأفضل تغذوياً",B:"جيد",C:"متوسط",D:"منخفض",E:"الأدنى تغذوياً"},
+      meaningSub:{A:"منخفض السعرات والسكر والملح",B:"منخفض عموماً في السكر والملح",C:"كميات معتدلة من السكر أو الملح",D:"مرتفع نسبياً في السكر أو الدهون أو الملح",E:"مرتفع في السكر والدهون المشبعة والملح"},
+      reasons:{sugar:"سكريات مرتفعة",energy:"سعرات مرتفعة",satfat:"دهون مشبعة مرتفعة",salt:"ملح مرتفع"},
+      values:{energy:"الطاقة",satfat:"دهون مشبعة",sugar:"سكريات",salt:"ملح",fibre:"ألياف",protein:"بروتين",fat:"دهون",carb:"كربوهيدرات"},
+      per:"القيم لكل 100 غ كما وردت على الملصق",
+      whatif:"ماذا لو خفّض المصنّع السكر؟", cut:p=>`سكر أقل بنسبة ${p}%`,
+      becomes:(g,same)=> same ? `تبقى الدرجة <b class="${g}">${g}</b>` : `تصبح الدرجة <b class="${g}">${g}</b>`,
+      foot:"تقدير من بيانات الملصق وفق مسودة اللائحة الفنية الإماراتية لعلامة التغذية. ليس شهادة رسمية.",
+      again:"امسح منتجاً آخر"
+    },
+    en:{
+      title:"Nutri-Mark",
+      introTitle:"Nutri-Mark", introLine:"Photograph the nutrition table on any product and get its A to E grade in seconds", introGo:"Scan a product",
+      hint:"Point at the nutrition table, then tap",
+      reading:"Reading the label…", found:n=>`Found ${n} of 6`,
+      product:"Honey breakfast cereal", brand:"Sample product for the demo · per 100 g",
+      meaning:{A:"Best",B:"Good",C:"Moderate",D:"Low",E:"Lowest"},
+      meaningSub:{A:"Low in energy, sugar and salt",B:"Generally low in sugar and salt",C:"Moderate sugar or salt",D:"Relatively high in sugar, fat or salt",E:"High in sugar, saturated fat and salt"},
+      reasons:{sugar:"High in sugar",energy:"High in energy",satfat:"High in saturated fat",salt:"High in salt"},
+      values:{energy:"Energy",satfat:"Saturates",sugar:"Sugars",salt:"Salt",fibre:"Fibre",protein:"Protein",fat:"Fat",carb:"Carbohydrate"},
+      per:"Values per 100 g as printed on the label",
+      whatif:"What if the maker cut the sugar?", cut:p=>`${p}% less sugar`,
+      becomes:(g,same)=> same ? `Grade stays <b class="${g}">${g}</b>` : `Grade becomes <b class="${g}">${g}</b>`,
+      foot:"Estimated from the label per the UAE draft technical regulation for the Nutri-Mark. Not an official certificate.",
+      again:"Scan another product"
+    }
+  };
+
+  // ---------- sample product (per 100 g) ----------
+  const P = {energy:1407, kcal:335, fat:5.0, satfat:3.5, carb:72, sugar:15, fibre:4.5, protein:7.0, salt:0.5, fruit:0};   // 1407 = ROUND(335*4.2), as the official tool converts
+
+  // ---------- points tables (general foods) ----------
+  // Source: MOIAT draft "Requirements for The Nutri-Mark on Front of Pack Labeling" (UAE.S ....:2025).
+  // Negative points: Table 1 (p10-11). Positive points: Table 2 (p11).
+  // Rule 5.3.2 (p11-12): N < 11 or cheese -> score = N - P; N >= 11 -> score = N - fibre - fruit/veg (protein excluded).
+  // Cut-offs: Table 3 (p12): A <= 0, B 1-2, C 3-10, D 11-18, E >= 19.
+  // Fats/oils (5.4), beverages (5.5) and red meat (Annex 1) have their own tables: see research/nutrimark_rules.json.
+  // Verified against the official QCC calculator (Apr 2026) by an independent audit, 14 Sep 2026: research/CALC_REVIEW.md
+  const T = {
+    energy:[335,670,1005,1340,1675,2010,2345,2680,3015,3350],
+    satfat:[1,2,3,4,5,6,7,8,9,10],
+    sugar:[3.4,6.8,10,14,17,20,24,27,31,34,37,41,44,48,51],
+    salt:[0.2,0.4,0.6,0.8,1,1.2,1.4,1.6,1.8,2,2.2,2.4,2.6,2.8,3,3.2,3.4,3.6,3.8,4],
+    fibre:[3.0,4.1,5.2,6.3,7.4],
+    protein:[2.4,4.8,7.2,9.6,12,14,17]
+  };
+  const pts = (v,arr)=>arr.filter(t=>v>t).length;
+  const fvlPts = f => f>80 ? 5 : f>60 ? 2 : f>40 ? 1 : 0;      // fruits, vegetables, legumes (%)
+  function grade(p){
+    const n = {energy:pts(p.energy,T.energy), satfat:pts(p.satfat,T.satfat), sugar:pts(p.sugar,T.sugar), salt:pts(p.salt,T.salt)};
+    const N = n.energy+n.satfat+n.sugar+n.salt;
+    const round2 = x => Math.round((x + Number.EPSILON) * 100) / 100;   // Excel-style ROUND(x,2), avoids 2.405 -> 2.40
+    const fib = pts(p.fibre,T.fibre), pro = pts(round2(p.protein),T.protein), fru = fvlPts(p.fruit||0);
+    const countProtein = N<11;   // draft 5.3.2(b): protein excluded whenever N >= 11 (cheese excepted; not modelled here)
+    const score = N - fib - fru - (countProtein?pro:0);
+    const g = score<=0?"A":score<=2?"B":score<=10?"C":score<=18?"D":"E";
+    return {g,score,n};
+  }
+  const COL = {A:"var(--A)",B:"var(--B)",C:"var(--C)",D:"var(--D)",E:"var(--E)"};
+
+  // ---------- state ----------
+  let lang = "ar", look = "verdict", busy=false, timers=[];
+  const $ = id=>document.getElementById(id);
+  const phone=$("phone"), scan=$("scan"), result=$("result"), cam=$("cam"), hint=$("hint");
+  const later=(fn,ms)=>timers.push(setTimeout(fn,ms));
+  const clearTimers=()=>{timers.forEach(clearTimeout);timers=[]};
+
+  function applyStrings(){
+    const s=S[lang];
+    document.querySelectorAll("[data-t]").forEach(el=>{const k=el.dataset.t; if(typeof s[k]==="string") el.textContent=s[k];});
+    phone.dir = lang==="ar"?"rtl":"ltr"; phone.lang=lang;
+    hint.textContent = busy ? hint.textContent : s.hint;
+    $("shutter").setAttribute("aria-label", lang==="ar"?"امسح":"Scan");
+    renderValues(); renderWhatIf();
+    if(!result.hidden){ renderMeaning(currentGrade); renderReasons(currentGrade); }
+  }
+  function renderValues(){
+    const s=S[lang].values;
+    const rows=[["energy",`${P.energy}<small>kJ</small>`],["sugar",`${P.sugar}<small>g</small>`],["satfat",`${P.satfat}<small>g</small>`],["salt",`${P.salt}<small>g</small>`],
+                ["fibre",`${P.fibre}<small>g</small>`],["protein",`${P.protein}<small>g</small>`],["fat",`${P.fat}<small>g</small>`],["carb",`${P.carb}<small>g</small>`]];
+    $("values").innerHTML = rows.map(([k,v])=>`<div><dt>${s[k]}</dt><dd>${v}</dd></div>`).join("");
+  }
+  let currentGrade = grade(P);
+  function renderMeaning(G){
+    const s=S[lang];
+    $("meaning").innerHTML = `${s.meaning[G.g]}<small>${s.meaningSub[G.g]}</small>`;
+  }
+  function renderReasons(G){
+    const s=S[lang].reasons;
+    const order = Object.entries(G.n).sort((a,b)=>b[1]-a[1]).filter(([,v])=>v>=2).slice(0,3);
+    const settled = !result.hidden && !busy;   // re-render after the reveal: show at once
+    $("reasons").innerHTML = order.map(([k])=>`<li class="${settled?"in":""}" style="--gcol:${COL[G.g]}"><i></i>${s[k]}</li>`).join("");
+  }
+  function renderWhatIf(){
+    const s=S[lang]; const cut=+$("cut").value;
+    $("cutout").textContent = s.cut(cut);
+    const G2 = grade({...P, sugar:+(P.sugar*(1-cut/100)).toFixed(1)});
+    $("becomes").innerHTML = s.becomes(G2.g, G2.g===currentGrade.g);
+    $("becomes").style.setProperty("--gcol", COL[G2.g]);
+    // move the band + letter live
+    setHit(G2.g, G2.g!==shownGrade);
+  }
+  let shownGrade = null;
+  function setBadge(g, animate){          // Scanner look: grade pinned to the package
+    let b=document.querySelector("#label .badge");
+    if(look!=="scanner"){ if(b) b.remove(); return; }
+    if(!b){ b=document.createElement("div"); b.className="badge"; $("label").appendChild(b); }
+    b.textContent=g; b.className="badge "+g; b.style.setProperty("--gcol",COL[g]);
+    if(animate){ void b.offsetWidth; b.classList.add("in"); } else b.classList.add("in");
+  }
+  function setHit(g, animate){
+    document.querySelectorAll("#band b").forEach(b=>{b.classList.toggle("hit",b.dataset.g===g); b.classList.toggle("dim",b.dataset.g!==g);});
+    const L=$("letter");
+    if(animate && shownGrade){ L.classList.remove("swap"); void L.offsetWidth; L.classList.add("swap"); later(()=>{L.textContent=g; L.style.color=COL[g];},170); }
+    else { L.textContent=g; L.style.color=COL[g]; }
+    if(!result.hidden) setBadge(g, animate);
+    shownGrade=g;
+    renderMeaning(grade({...P, sugar:+(P.sugar*(1-(+$("cut").value)/100)).toFixed(1)}));
+  }
+
+  // ---------- choreography ----------
+  function startScan(){
+    if(busy) return; busy=true; clearTimers();
+    const s=S[lang];
+    cam.classList.add("scanning");
+    hint.textContent = s.reading;
+    const rows=[...document.querySelectorAll("#label tr.use")];
+    rows.forEach(r=>r.classList.remove("lit"));
+    // sweep 1.25s, then rows light one by one
+    rows.forEach((r,i)=> later(()=>{ r.classList.add("lit"); hint.innerHTML = `<span class="counter">${s.found(i+1)}</span>`; }, 900+i*230));
+    later(showResult, 900+rows.length*230+500);
+  }
+  function showResult(){
+    const G=grade(P); currentGrade=G; shownGrade=null;
+    $("cut").value=0;
+    // reset result pieces
+    document.querySelectorAll("#band b").forEach(b=>b.classList.remove("on","hit","dim"));
+    const L=$("letter"); L.classList.remove("land","swap"); L.style.opacity=""; L.textContent=G.g; L.style.color=COL[G.g];
+    ["meaning","values","whatif","foot","again"].forEach(id=>$(id).classList.remove("in"));
+    renderMeaning(G); renderReasons(G); renderValues(); renderWhatIf();
+    document.querySelectorAll("#reasons li").forEach(li=>li.classList.remove("in"));
+    $("band").querySelectorAll("b").forEach(b=>b.classList.remove("hit","dim"));
+
+    const overlay = look==="scanner";           // Scanner: camera stays, result rides up as a sheet
+    if(!overlay) scan.classList.add("leaving");
+    later(()=>{
+      if(!overlay) scan.hidden=true;
+      scan.classList.remove("leaving"); cam.classList.remove("scanning");
+      result.hidden=false; result.classList.add("entering"); result.scrollTop=0;
+      requestAnimationFrame(()=>requestAnimationFrame(()=>result.classList.remove("entering")));
+      // band fills A→E
+      const cells=[...document.querySelectorAll("#band b")];
+      cells.forEach((b,i)=>later(()=>b.classList.add("on"), 350+i*130));
+      // letter lands, band focuses on the grade
+      later(()=>{ setHit(G.g,false); L.classList.add("land"); if(overlay) setBadge(G.g,true); }, 350+5*130+150);
+      later(()=>$("meaning").classList.add("in"), 1450);
+      // reasons stagger
+      later(()=>document.querySelectorAll("#reasons li").forEach((li,i)=>later(()=>li.classList.add("in"), i*140)), 1650);
+      later(()=>$("values").classList.add("in"), 2150);
+      later(()=>$("whatif").classList.add("in"), 2400);
+      later(()=>{$("foot").classList.add("in"); $("again").classList.add("in"); busy=false;}, 2650);
+    }, 420);
+  }
+  function reset(){
+    clearTimers(); busy=false;
+    result.classList.add("leaving");
+    later(()=>{
+      result.hidden=true; result.classList.remove("leaving");
+      document.querySelectorAll("#label tr.use").forEach(r=>r.classList.remove("lit"));
+      const b=document.querySelector("#label .badge"); if(b) b.remove();
+      hint.textContent=S[lang].hint;
+      if(scan.hidden){
+        scan.hidden=false; scan.classList.add("entering");
+        requestAnimationFrame(()=>requestAnimationFrame(()=>scan.classList.remove("entering")));
+      }
+    },380);
+  }
+
+  // ---------- intro choreography: letters run A→E, collapse, the band assembles ----------
+  const intro=$("intro");
+  function playIntro(){
+    const cyc=$("cycle"), mb=$("miniband");
+    cyc.className="cycle"; mb.classList.remove("in"); $("introCopy").classList.remove("in"); $("introActions").classList.remove("in");
+    if(matchMedia("(prefers-reduced-motion: reduce)").matches){
+      cyc.style.display="none"; mb.classList.add("in"); $("introCopy").classList.add("in"); $("introActions").classList.add("in"); return;
+    }
+    const GR=["A","B","C","D","E"], step=280, t0=250;
+    GR.forEach((g,i)=> later(()=>{ cyc.textContent=g; cyc.style.color=COL[g]; cyc.classList.remove("pop"); void cyc.offsetWidth; cyc.classList.add("pop"); }, t0+i*step));
+    const tEnd=t0+GR.length*step;
+    later(()=>cyc.classList.add("out"), tEnd+120);
+    later(()=>mb.classList.add("in"), tEnd+330);
+    later(()=>$("introCopy").classList.add("in"), tEnd+900);
+    later(()=>$("introActions").classList.add("in"), tEnd+1150);
+  }
+  function go(){
+    clearTimers(); busy=false;
+    $("introActions").classList.add("in"); $("introCopy").classList.add("in");
+    intro.classList.add("leaving");
+    later(()=>{
+      intro.hidden=true; intro.classList.remove("leaving");
+      scan.hidden=false; scan.classList.add("entering");
+      requestAnimationFrame(()=>requestAnimationFrame(()=>scan.classList.remove("entering")));
+    },380);
+  }
+  $("go").addEventListener("click", go);
+  $("ilang-ar").onclick=()=>setLang("ar"); $("ilang-en").onclick=()=>setLang("en");
+
+  // ---------- wiring ----------
+  $("shutter").addEventListener("click", startScan);
+  $("again").addEventListener("click", reset);
+  $("cut").addEventListener("input", renderWhatIf);
+  function setLang(l){
+    lang=l;
+    [["lang-ar","ar"],["lang-en","en"],["ilang-ar","ar"],["ilang-en","en"]].forEach(([id,v])=>$(id).setAttribute("aria-pressed", l===v));
+    applyStrings();
+  }
+  function setLook(k){
+    look=k; phone.dataset.look=k;
+    ["verdict","label","scanner"].forEach(n=>$("look-"+n).setAttribute("aria-pressed", k===n));
+    if(!result.hidden){                       // switching looks mid-result: keep the state coherent
+      scan.hidden = (k!=="scanner");
+      setBadge(shownGrade||currentGrade.g,false);
+    }
+  }
+  $("lang-ar").onclick=()=>setLang("ar"); $("lang-en").onclick=()=>setLang("en");
+  $("look-verdict").onclick=()=>setLook("verdict"); $("look-label").onclick=()=>setLook("label"); $("look-scanner").onclick=()=>setLook("scanner");
+  applyStrings();
+  playIntro();
+</script>
+
+</body>
+</html>

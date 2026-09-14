@@ -1,0 +1,12 @@
+# local QA and research material stays on disk
+qa/
+qa.html
+server.log
+.playwright-mcp/
+research/*.pdf
+research/*.txt
+research/*.xlsx
+research/*.png
+research/CALC_REVIEW.md
+_check.js
+_run.js
