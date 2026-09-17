@@ -98,6 +98,21 @@ test("a non-food photo is routed as not_food", () => {
   assert.equal(route({ ...cereal, category: "other" }, []).action, "not_food");
 });
 
+test("a recognised product with no values at all is a no-table retake on the first read, never a second read", () => {
+  const front = { ...cereal, category: "beverages", basis: "unsure", plain_water: false,
+    values: { energy_kJ: null, energy_kcal: null, fat_g: null, satfat_g: null, carb_g: null, sugar_g: null, fibre_g: null, protein_g: null, salt_g: null, sodium_mg: null },
+    confidence: { energy: 0, fat: 0, satfat: 0, carb: 0, sugar: 0, fibre: 0, protein: 0, salt: 0, category: 0.9, basis: 0.1 } };
+  const r = route(front, [], { attempt: 1 });
+  assert.equal(r.action, "retake"); assert.ok(r.reasons.includes("no_table_in_photo"));
+});
+
+test("a front-of-pack calorie badge never blames the label", () => {
+  const badge = { ...cereal, category: "general", basis: "per_serving", serving_size: 30, nutrition_table_visible: false,
+    values: { energy_kJ: null, energy_kcal: 150, fat_g: null, satfat_g: null, carb_g: null, sugar_g: null, fibre_g: null, protein_g: null, salt_g: null, sodium_mg: null },
+    confidence: { energy: 0.95, fat: 0, satfat: 0, carb: 0, sugar: 0, fibre: 0, protein: 0, salt: 0, category: 0.9, basis: 0.9 } };
+  assert.notEqual(route(badge, [], { attempt: 2 }).action, "incomplete_label");
+});
+
 test("beverage with sweetener and plain water take the beverage paths", () => {
   const cola = { ...cereal, category: "beverages", basis: "per_100ml", values: { energy_kJ: 180, energy_kcal: 43, fat_g: 0, satfat_g: 0, carb_g: 10.6, sugar_g: 10.6, fibre_g: 0, protein_g: 0, salt_g: 0.01, sodium_mg: null }, sweeteners_present: true };
   const g1 = computeGrade(rules, toEngineInput(cola, cola.values).input);

@@ -16,6 +16,7 @@ export const ReadingSchema = z.object({
   label_language: z.enum(["ar", "en", "both", "other"]),
   category: z.enum(["general", "cheese", "red_meat", "fats", "beverages", "other", "unsure"]),
   category_reason: z.string(),
+  nutrition_table_visible: z.boolean(),        // a nutrition facts table is actually in the photo (not a front-of-pack badge)
   basis: z.enum(["per_100g", "per_100ml", "per_serving", "unsure"]),
   serving_size: num(),                 // grams or millilitres of one serving when basis is per_serving
   values: z.object({
@@ -46,6 +47,7 @@ export const ReadingSchema = z.object({
 
 export const SYSTEM_PROMPT = `You read the nutrition information printed on a packaged food or drink from one photo.
 Return only the fields in the schema. Rules:
+- nutrition_table_visible: true only if a nutrition facts table (a list of nutrients with amounts per 100 g, per 100 ml or per serving) is in the photo. A front-of-pack calorie or 'sugar-free' badge is not a table: false.
 - Copy numbers exactly as printed. Never estimate a nutrient value that is not printed; use null for it.
 - Report the basis the table uses: per 100 g, per 100 ml, or per serving (then give the serving size).
 - If both kJ and kcal are printed, report both. If only one, report that one and null for the other.
@@ -65,6 +67,7 @@ const jsonSchemaForGemini = {
     label_language: { type: "string", enum: ["ar", "en", "both", "other"] },
     category: { type: "string", enum: ["general", "cheese", "red_meat", "fats", "beverages", "other", "unsure"] },
     category_reason: { type: "string" },
+    nutrition_table_visible: { type: "boolean" },
     basis: { type: "string", enum: ["per_100g", "per_100ml", "per_serving", "unsure"] },
     serving_size: { type: "number", nullable: true },
     values: { type: "object", properties: Object.fromEntries(["energy_kJ","energy_kcal","fat_g","satfat_g","carb_g","sugar_g","fibre_g","protein_g","salt_g","sodium_mg"].map(k => [k, { type: "number", nullable: true }])) },

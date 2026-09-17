@@ -20,20 +20,28 @@
   html,body{height:100%}
   body{margin:0;background:var(--page);color:var(--ink);font-family:var(--font);-webkit-font-smoothing:antialiased;padding:16px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:14px}
   @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
-  .bar{width:100%;max-width:390px;display:flex;justify-content:space-between;align-items:center;font-size:13px;color:#5A5F76}
+  .bar{width:100%;max-width:390px;display:none;justify-content:flex-end;align-items:center;font-size:13px;color:#5A5F76}
+  body.dev .bar{display:flex}
   .bar .grp{display:flex;gap:2px;border:1px solid #C9CBD5;border-radius:8px;padding:2px;background:#fff}
   .bar button{font:inherit;font-size:13px;border:0;background:transparent;color:#5A5F76;padding:5px 10px;border-radius:6px;cursor:pointer}
   .bar button[aria-pressed="true"]{background:#3A3F57;color:#fff}
-  .phone{width:390px;max-width:100%;height:780px;max-height:calc(100vh - 80px);background:var(--ground);color:var(--ink);border-radius:38px;box-shadow:var(--shadow);overflow:hidden;position:relative;transition:background .35s ease,color .35s ease}
-  @media (max-width:480px){body{padding:8px}.phone{height:calc(100vh - 60px);height:calc(100dvh - 60px);max-height:none;border-radius:24px}}
+  .phone{width:390px;max-width:100%;height:780px;max-height:calc(100vh - 32px);background:var(--ground);color:var(--ink);border-radius:38px;box-shadow:var(--shadow);overflow:hidden;position:relative;transition:background .35s ease,color .35s ease}
+  body.dev .phone{max-height:calc(100vh - 80px)}
+  @media (max-width:480px){body{padding:8px}.phone{height:calc(100vh - 16px);height:calc(100dvh - 16px);max-height:none;border-radius:24px} body.dev .phone{height:calc(100dvh - 60px)}}
   .screen{position:absolute;inset:0;display:flex;flex-direction:column;transition:opacity .45s ease,transform .45s ease}
   .screen[hidden]{display:none}
   .screen.leaving{opacity:0;transform:translateY(-24px);pointer-events:none}
   .screen.entering{opacity:0;transform:translateY(24px)}
+  /* header with language toggle inside the frame */
+  .head{display:flex;align-items:center;justify-content:space-between;padding:18px 22px 10px}
+  .brand{font-weight:600;font-size:15px}
+  .lang{display:flex;gap:2px;border:1px solid var(--hair);border-radius:8px;padding:2px}
+  .lang button{font:inherit;font-size:12px;border:0;background:transparent;color:var(--muted);padding:3px 8px;border-radius:6px;cursor:pointer}
+  .lang button[aria-pressed="true"]{background:var(--ink);color:var(--ground)}
   /* intro */
   .intro{padding:36px 22px 26px;justify-content:flex-start;align-items:stretch;gap:10px}
-  .stage{flex:0 0 auto;height:280px;display:grid;align-items:end;justify-items:center;padding-bottom:6px;position:relative}
-  .intro-actions{margin-top:auto}
+  .intro-mid{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;gap:10px}
+  .stage{flex:0 0 auto;height:260px;display:grid;align-items:end;justify-items:center;padding-bottom:6px;position:relative}
   .cycle{position:absolute;inset:0;display:grid;place-items:center;font-size:220px;font-weight:700;line-height:1;letter-spacing:-.05em;opacity:0;transform:scale(.3)}
   .cycle.pop{animation:pop .26s cubic-bezier(.2,.9,.3,1.2) forwards}
   @keyframes pop{0%{transform:scale(.55);opacity:.15}100%{transform:scale(1);opacity:1}}
@@ -45,59 +53,80 @@
   .miniband.in b{animation:cell .42s cubic-bezier(.2,.9,.3,1.25) forwards;animation-delay:calc(var(--i)*80ms)}
   @keyframes cell{to{transform:scale(1)}}
   .miniband b[data-g="A"]{background:var(--A)} .miniband b[data-g="B"]{background:var(--B)} .miniband b[data-g="C"]{background:var(--C);color:#3A2A00} .miniband b[data-g="D"]{background:var(--D)} .miniband b[data-g="E"]{background:var(--E)}
+  .bandends{direction:ltr;display:flex;justify-content:space-between;width:min(100%,300px);margin:6px auto 0;font-size:11px;color:var(--muted);opacity:0;transition:opacity .5s}
+  .bandends.in{opacity:1}
   .intro-copy{text-align:center;opacity:0;transform:translateY(12px);transition:opacity .5s ease,transform .5s ease}
   .intro-copy.in{opacity:1;transform:none}
   .intro-copy h1{font-size:30px;margin:0 0 6px;font-weight:700;letter-spacing:-.01em;text-wrap:balance}
-  .intro-copy p{margin:0 auto;max-width:30ch;color:var(--muted);font-size:15px;line-height:1.5;text-wrap:balance}
-  .intro-actions{display:flex;flex-direction:column;gap:12px;opacity:0;transform:translateY(12px);transition:opacity .5s ease,transform .5s ease}
+  .intro-copy p{margin:0 auto;max-width:32ch;color:var(--muted);font-size:15px;line-height:1.5;text-wrap:balance}
+  .intro-actions{margin-top:auto;display:flex;flex-direction:column;gap:12px;opacity:0;transform:translateY(12px);transition:opacity .5s ease,transform .5s ease}
   .intro-actions.in{opacity:1;transform:none}
   .langs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
   .langs button{font:inherit;font-size:15px;padding:12px;border-radius:12px;border:1px solid var(--hair);background:transparent;color:var(--ink);cursor:pointer}
   .langs button[aria-pressed="true"]{background:var(--ink);color:var(--ground);border-color:var(--ink)}
-  .go{font:inherit;font-size:16px;font-weight:600;padding:16px;border-radius:14px;border:0;background:var(--ink);color:var(--ground);cursor:pointer}
-  /* header */
-  .head{display:flex;align-items:center;justify-content:space-between;padding:18px 22px 10px}
-  .brand{display:flex;align-items:center;font-weight:600;font-size:15px}
+  .go,.primary{font:inherit;font-size:16px;font-weight:600;padding:16px;border-radius:14px;border:0;background:var(--ink);color:var(--ground);cursor:pointer}
+  .secondary{font:inherit;font-size:14px;padding:12px;border-radius:12px;border:1px solid var(--hair);background:transparent;color:var(--ink);cursor:pointer}
+  .linkbtn{font:inherit;font-size:13px;border:0;background:transparent;color:var(--muted);text-decoration:underline;cursor:pointer;padding:6px}
+  /* guidance card */
+  .guide{padding:18px 22px 22px;gap:14px;justify-content:flex-start}
+  .guide h2{margin:0;font-size:20px;font-weight:600;text-wrap:balance}
+  .guide .art{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;gap:18px}
+  .guide svg{width:100%;height:auto;max-height:230px;display:block}
+  .guide ol{margin:0;padding-inline-start:20px;font-size:15px;line-height:1.6;color:var(--ink)}
+  .guide .actions{margin-top:auto;display:flex;flex-direction:column;gap:8px}
   /* scan */
   .cam{flex:1;margin:0 14px;border-radius:26px;background:var(--cam);position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
   .cam::after{content:"";position:absolute;inset:0;background:radial-gradient(120% 90% at 50% 40%,transparent 55%,rgba(0,0,0,.55));pointer-events:none}
-  .frame{position:absolute;inset:34px 26px 128px;pointer-events:none;z-index:1}
-  .frame i{position:absolute;width:26px;height:26px;border:3px solid #fff;opacity:.9}
-  .frame i:nth-child(1){top:0;left:0;border-right:0;border-bottom:0;border-radius:8px 0 0 0}
-  .frame i:nth-child(2){top:0;right:0;border-left:0;border-bottom:0;border-radius:0 8px 0 0}
-  .frame i:nth-child(3){bottom:0;left:0;border-right:0;border-top:0;border-radius:0 0 0 8px}
-  .frame i:nth-child(4){bottom:0;right:0;border-left:0;border-top:0;border-radius:0 0 8px 0}
   .sweep{position:absolute;left:26px;right:26px;top:34px;height:3px;background:linear-gradient(90deg,transparent,#fff,transparent);box-shadow:0 0 18px 4px rgba(255,255,255,.55);opacity:0;pointer-events:none;z-index:1}
   .scanning .sweep{animation:sweep 1.4s cubic-bezier(.4,0,.2,1) infinite}
   @keyframes sweep{0%{opacity:0;transform:translateY(0)}8%{opacity:1}92%{opacity:1}100%{opacity:0;transform:translateY(560px)}}
   .preview{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .3s}
   .preview.show{opacity:1}
-  .placeholder{color:#8A90A6;font-size:14px;text-align:center;padding:0 40px;line-height:1.5;z-index:1}
-  .camfoot{position:absolute;left:0;right:0;bottom:0;padding:14px 20px 18px;display:flex;flex-direction:column;align-items:center;gap:12px;color:#fff;background:linear-gradient(180deg,transparent,rgba(0,0,0,.6));z-index:2}
+  .placeholder{color:#B6BACB;font-size:15px;text-align:center;padding:0 36px;line-height:1.6;z-index:1;max-width:32ch}
+  .camfoot{position:absolute;left:0;right:0;bottom:0;padding:14px 20px 18px;display:flex;flex-direction:column;align-items:center;gap:10px;color:#fff;background:linear-gradient(180deg,transparent,rgba(0,0,0,.6));z-index:2}
   .hint{font-size:13.5px;opacity:.95;text-align:center;min-height:1.4em;line-height:1.4}
   .shutter{width:72px;height:72px;border-radius:50%;border:4px solid #fff;background:transparent;display:grid;place-items:center;cursor:pointer;padding:0}
   .shutter span{width:54px;height:54px;border-radius:50%;background:#fff;transition:transform .15s ease,background .2s}
   .shutter:active span{transform:scale(.88)}
   .gallery{font:inherit;font-size:12.5px;color:#fff;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.35);border-radius:10px;padding:6px 12px;cursor:pointer}
-  .scanning .gallery{pointer-events:none;opacity:.5}
-  .scanning .shutter{pointer-events:none}
+  .scanning .shutter,.scanning .gallery{pointer-events:none}
+  .scanning .gallery{opacity:.5}
   .scanning .shutter span{background:var(--accent);animation:pulse 1.1s ease-in-out infinite}
   @keyframes pulse{50%{transform:scale(.82)}}
+  .cam.hasmsg .placeholder{visibility:hidden}
+  .msg{position:absolute;left:22px;right:22px;top:42%;transform:translateY(-50%);background:#14161F;border:1px solid rgba(255,255,255,.12);color:#fff;border-radius:16px;padding:16px 18px;font-size:14.5px;line-height:1.55;text-align:center;z-index:3;display:none}
+  .msg.show{display:block}
+  .msg .btns{display:flex;flex-direction:column;gap:6px;margin-top:12px;align-items:center}
+  .msg button.primary{font-size:14px;padding:10px 16px;border-radius:10px;background:#fff;color:#14161F;width:auto}
+  .msg .linkbtn{color:#C9CCE0}
+  input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;left:-9999px}
+  /* confirm card */
+  .confirm{padding:0 22px 18px;overflow:auto;scrollbar-width:none}
+  .confirm::-webkit-scrollbar{display:none}
+  .confirm h2{margin:6px 0 4px;font-size:19px;font-weight:600}
+  .confirm .sub{margin:0 0 12px;font-size:13px;color:var(--muted)}
+  .kv{display:grid;grid-template-columns:1fr auto;gap:8px 12px;font-size:15px;border-top:1px solid var(--hair);padding-top:10px}
+  .kv dt{color:var(--muted)} .kv dd{margin:0;font-weight:600;font-variant-numeric:tabular-nums;text-align:end}
+  .kv input{font:inherit;font-size:15px;width:6.5em;text-align:end;padding:6px 8px;border:1px solid var(--hair);border-radius:8px;background:var(--surface);color:var(--ink)}
+  .kv select{font:inherit;font-size:14px;padding:6px 8px;border:1px solid var(--hair);border-radius:8px;background:var(--surface);color:var(--ink)}
+  .flags{font-size:12.5px;color:var(--muted);margin:10px 0 0;line-height:1.5}
+  .confirm .actions{display:flex;flex-direction:column;gap:8px;margin-top:16px}
   /* result */
   .result{padding:0 22px 18px;overflow:auto;scrollbar-width:none}
   .result::-webkit-scrollbar{display:none}
-  .product{display:flex;align-items:center;gap:14px;margin:2px 0 14px}
+  .product{display:flex;align-items:center;gap:14px;margin:2px 0 12px}
   .thumb{width:64px;height:64px;border-radius:14px;flex:none;object-fit:cover;background:var(--hair)}
   .product h2{margin:0;font-size:19px;font-weight:600;line-height:1.25;text-wrap:balance}
   .product p{margin:2px 0 0;font-size:12.5px;color:var(--muted)}
-  .band{direction:ltr;display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin:0 0 6px}
+  .band{direction:ltr;display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin:0 0 4px}
   .band b{height:44px;border-radius:9px;display:grid;place-items:center;font-weight:700;font-size:18px;color:#fff;background:var(--hair);opacity:.38;transform:scale(.94);transition:background .35s ease,opacity .35s ease,transform .35s ease,box-shadow .35s}
   .band b.on{opacity:1;transform:scale(1)}
   .band b[data-g="A"].on{background:var(--A)} .band b[data-g="B"].on{background:var(--B)} .band b[data-g="C"].on{background:var(--C);color:#3A2A00} .band b[data-g="D"].on{background:var(--D)} .band b[data-g="E"].on{background:var(--E)}
   .band b.hit{transform:scale(1.14);box-shadow:0 8px 22px rgba(0,0,0,.28);z-index:1}
   .band b.dim{opacity:.32;transform:scale(.92)}
-  .verdict{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:2px 0 2px;min-height:128px}
-  .letter{font-size:148px;line-height:.9;font-weight:700;letter-spacing:-.04em;transform:scale(.4);opacity:0;transform-origin:center;display:block}
+  .bandends.result-ends{width:100%;margin:0 0 4px}
+  .verdict{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0;min-height:120px}
+  .letter{font-size:140px;line-height:.9;font-weight:700;letter-spacing:-.04em;transform:scale(.4);opacity:0;transform-origin:center;display:block}
   .letter.land{animation:land .55s cubic-bezier(.2,.9,.3,1.25) forwards}
   @keyframes land{0%{transform:scale(.4);opacity:0}70%{transform:scale(1.08);opacity:1}100%{transform:scale(1);opacity:1}}
   .letter.swap{animation:swap .42s ease forwards}
@@ -105,36 +134,41 @@
   .meaning{flex:1;font-size:16px;font-weight:500;line-height:1.35;opacity:0;transform:translateY(8px);transition:opacity .4s,transform .4s}
   .meaning.in{opacity:1;transform:none}
   .meaning small{display:block;font-size:12.5px;color:var(--muted);font-weight:400;margin-top:4px}
-  .reasons{display:flex;flex-direction:column;gap:6px;margin:2px 0 12px;padding:0;list-style:none}
+  .reasons{display:flex;flex-direction:column;gap:6px;margin:2px 0 10px;padding:0;list-style:none}
   .reasons li{display:flex;align-items:center;gap:10px;font-size:14.5px;opacity:0;transform:translateX(var(--slide,-14px));transition:opacity .35s,transform .35s}
   [dir="rtl"] .reasons li{--slide:14px}
   .reasons li.in{opacity:1;transform:none}
   .reasons li i{width:9px;height:9px;border-radius:50%;flex:none;background:var(--gcol,var(--D))}
-  .values{display:grid;grid-template-columns:repeat(4,1fr);gap:8px 6px;border-top:1px solid var(--hair);border-bottom:1px solid var(--hair);padding:10px 0;margin:0 0 12px;opacity:0;transition:opacity .45s}
+  .reasons li.pos i{background:var(--A)}
+  .values{display:grid;grid-template-columns:repeat(4,1fr);gap:8px 6px;border-top:1px solid var(--hair);border-bottom:1px solid var(--hair);padding:10px 0;margin:0 0 10px;opacity:0;transition:opacity .45s}
   .values.in{opacity:1}
   .values div{display:flex;flex-direction:column;gap:2px}
   .values dt{font-size:11px;color:var(--muted)} .values dd{margin:0;font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
-  .values dd small{font-size:10.5px;font-weight:400;color:var(--muted);margin-inline-start:2px}
-  .per{font-size:11px;color:var(--muted);margin:-8px 0 10px}
+  .values dd small{font-size:11.5px;font-weight:400;color:var(--muted);margin-inline-start:6px}
+  .phone[data-look="scanner"] .whatif{background:rgba(255,255,255,.06)}
+  .values dd .kj{display:block;font-size:10.5px;font-weight:400;color:var(--muted)}
+  .per{font-size:11.5px;color:var(--muted);margin:-6px 0 4px;line-height:1.45}
+  .flagsline{font-size:11.5px;color:var(--muted);margin:0 0 10px;line-height:1.45}
   .whatif{opacity:0;transform:translateY(10px);transition:opacity .45s,transform .45s;background:var(--surface);border-radius:16px;padding:12px 14px 10px;margin:0 0 10px;box-shadow:0 1px 0 var(--hair)}
   .whatif.in{opacity:1;transform:none}
   .whatif h4{margin:0 0 8px;font-size:14px;font-weight:600}
   .whatif .row{display:flex;align-items:center;gap:12px}
   .whatif input[type=range]{flex:1;accent-color:var(--accent);height:28px;margin:0}
-  .whatif output{font-variant-numeric:tabular-nums;font-size:13px;min-width:5.5em;text-align:end;color:var(--muted)}
+  .whatif output{font-variant-numeric:tabular-nums;font-size:13px;min-width:6.5em;text-align:end;color:var(--muted)}
   .whatif .becomes{margin-top:6px;font-size:13.5px;min-height:1.3em}
   .whatif .becomes b{font-size:16px;padding:0 6px;border-radius:6px;color:#fff;background:var(--gcol,var(--D))}
   .whatif .becomes b.C{color:#3A2A00}
+  .whatif .note{font-size:11px;color:var(--muted);margin-top:6px}
   .foot{font-size:11px;color:var(--muted);line-height:1.45;margin:0 0 10px;opacity:0;transition:opacity .45s}
   .foot.in{opacity:1}
   .again{width:100%;font:inherit;font-size:15px;font-weight:600;padding:14px;border-radius:14px;border:0;background:var(--ink);color:var(--ground);cursor:pointer;opacity:0;transition:opacity .45s}
   .again.in{opacity:1}
   /* scanner look */
   .phone[data-look="scanner"] #scan .head{position:absolute;top:0;left:0;right:0;z-index:2;color:#fff;background:linear-gradient(180deg,rgba(0,0,0,.55),transparent)}
+  .phone[data-look="scanner"] #scan .lang{border-color:rgba(255,255,255,.4)} .phone[data-look="scanner"] #scan .lang button{color:#fff}
   .phone[data-look="scanner"] .cam{position:absolute;inset:0;margin:0;border-radius:0}
-  .phone[data-look="scanner"] .frame{inset:84px 26px 150px}
   .phone[data-look="scanner"] .sweep{top:84px}
-  .phone[data-look="scanner"] #result{top:auto;bottom:0;height:62%;border-radius:26px 26px 0 0;background:var(--surface);box-shadow:0 -14px 40px rgba(0,0,0,.5);z-index:3;padding-top:6px}
+  .phone[data-look="scanner"] #result{top:auto;bottom:0;height:76%;border-radius:26px 26px 0 0;background:var(--surface);box-shadow:0 -14px 40px rgba(0,0,0,.5);z-index:3;padding-top:6px}
   .phone[data-look="scanner"] #result::before{content:"";display:block;width:44px;height:5px;border-radius:3px;background:var(--hair);margin:4px auto 12px}
   .phone[data-look="scanner"] #result .head,.phone[data-look="scanner"] #result .product{display:none}
   .phone[data-look="scanner"] .verdict{min-height:96px;margin:4px 0 0}
@@ -142,20 +176,11 @@
   .badge{position:absolute;top:96px;right:30px;width:66px;height:66px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:36px;color:#fff;background:var(--gcol,#F78D2B);box-shadow:0 10px 26px rgba(0,0,0,.45),0 0 0 4px rgba(255,255,255,.92);transform:scale(0);opacity:0;z-index:2}
   .badge.in{animation:land .55s cubic-bezier(.2,.9,.3,1.25) forwards}
   .badge.C{color:#3A2A00}
-  .msg{position:absolute;left:22px;right:22px;top:40%;transform:translateY(-50%);background:rgba(20,22,31,.92);color:#fff;border-radius:16px;padding:16px 18px;font-size:14.5px;line-height:1.5;text-align:center;z-index:3;display:none}
-  .msg.show{display:block}
-  .msg button{margin-top:12px;font:inherit;font-size:14px;font-weight:600;padding:10px 16px;border-radius:10px;border:0;background:#fff;color:#14161F;cursor:pointer}
-  /* not display:none: some in-app browsers refuse to open a hidden file input */
-  input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;left:-9999px}
 </style>
 </head>
 <body>
 
 <div class="bar" id="bar">
-  <div class="grp" role="group" aria-label="Language">
-    <button id="lang-ar" aria-pressed="true">عربي</button>
-    <button id="lang-en" aria-pressed="false">EN</button>
-  </div>
   <div class="grp" role="group" aria-label="Look">
     <button id="look-verdict" aria-pressed="true">Verdict</button>
     <button id="look-label" aria-pressed="false">Label</button>
@@ -166,28 +191,67 @@
 <div class="phone" id="phone" data-look="verdict" dir="rtl" lang="ar">
 
   <section class="screen intro" id="intro">
+    <div class="intro-mid">
     <div class="stage">
       <div class="cycle" id="cycle" aria-hidden="true">A</div>
-      <div class="miniband" id="miniband" dir="ltr" aria-label="Nutri-Mark A to E">
-        <b data-g="A" style="--i:0">A</b><b data-g="B" style="--i:1">B</b><b data-g="C" style="--i:2">C</b><b data-g="D" style="--i:3">D</b><b data-g="E" style="--i:4">E</b>
+      <div>
+        <div class="miniband" id="miniband" dir="ltr" aria-label="Nutri-Mark A to E">
+          <b data-g="A" style="--i:0">A</b><b data-g="B" style="--i:1">B</b><b data-g="C" style="--i:2">C</b><b data-g="D" style="--i:3">D</b><b data-g="E" style="--i:4">E</b>
+        </div>
+        <div class="bandends" id="bandends"><span data-t="bandBest"></span><span data-t="bandWorst"></span></div>
       </div>
     </div>
     <div class="intro-copy" id="introCopy"><h1 data-t="introTitle"></h1><p data-t="introLine"></p></div>
+    </div>
     <div class="intro-actions" id="introActions">
       <div class="langs" role="group" aria-label="Language"><button id="ilang-ar" aria-pressed="true">عربي</button><button id="ilang-en" aria-pressed="false">English</button></div>
       <button class="go" id="go" data-t="introGo"></button>
     </div>
   </section>
 
+  <section class="screen guide" id="guide" hidden>
+    <div class="head" style="padding-inline:0"><div class="brand" data-t="title"></div><div class="lang"><button class="lang-ar">عربي</button><button class="lang-en">EN</button></div></div>
+    <h2 data-t="guideTitle"></h2>
+    <div class="art">
+    <svg viewBox="0 0 360 200" aria-hidden="true">
+      <g transform="translate(20,20)">
+        <rect x="0" y="0" width="140" height="160" rx="10" fill="#E9C46A" stroke="#3A3F57" stroke-width="3"/>
+        <rect x="18" y="30" width="104" height="26" rx="6" fill="#B8862B" opacity=".8"/>
+        <circle cx="70" cy="105" r="30" fill="#F3EFE5" opacity=".9"/>
+        <text x="70" y="18" font-size="11" text-anchor="middle" fill="#3A3F57" font-weight="700">FRONT</text>
+        <circle cx="120" cy="18" r="16" fill="#F15E3E"/><path d="M112 10 l16 16 M128 10 l-16 16" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+      </g>
+      <g transform="translate(200,20)">
+        <rect x="0" y="0" width="140" height="160" rx="10" fill="#F3EFE5" stroke="#3A3F57" stroke-width="3"/>
+        <rect x="14" y="26" width="112" height="118" rx="4" fill="none" stroke="#00833E" stroke-width="4"/>
+        <g stroke="#3A3F57" stroke-width="2.5" stroke-linecap="round">
+          <line x1="24" y1="44" x2="72" y2="44"/><line x1="96" y1="44" x2="116" y2="44"/>
+          <line x1="24" y1="62" x2="66" y2="62"/><line x1="98" y1="62" x2="116" y2="62"/>
+          <line x1="24" y1="80" x2="78" y2="80"/><line x1="94" y1="80" x2="116" y2="80"/>
+          <line x1="24" y1="98" x2="62" y2="98"/><line x1="100" y1="98" x2="116" y2="98"/>
+          <line x1="24" y1="116" x2="70" y2="116"/><line x1="96" y1="116" x2="116" y2="116"/>
+          <line x1="24" y1="134" x2="58" y2="134"/><line x1="102" y1="134" x2="116" y2="134"/>
+        </g>
+        <text x="70" y="18" font-size="11" text-anchor="middle" fill="#3A3F57" font-weight="700">BACK</text>
+        <circle cx="120" cy="18" r="16" fill="#00833E"/><path d="M111 18 l6 6 l12 -13" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </g>
+    </svg>
+    <ol><li data-t="guide1"></li><li data-t="guide2"></li><li data-t="guide3"></li></ol>
+    </div>
+    <div class="actions">
+      <button class="primary" id="guideOpen" data-t="guideOpen"></button>
+      <button class="linkbtn" id="guideSkip" data-t="guideSkip"></button>
+    </div>
+  </section>
+
   <section class="screen" id="scan" hidden>
-    <div class="head"><div class="brand"><span data-t="title"></span></div></div>
+    <div class="head"><div class="brand" data-t="title"></div><div class="lang"><button class="lang-ar">عربي</button><button class="lang-en">EN</button></div></div>
     <div class="cam" id="cam">
       <img class="preview" id="preview" alt="">
       <div class="placeholder" id="placeholder" data-t="placeholder"></div>
-      <div class="frame"><i></i><i></i><i></i><i></i></div>
       <div class="sweep"></div>
       <div class="badge" id="badge" hidden></div>
-      <div class="msg" id="msg"><div id="msgText"></div><button id="msgBtn" data-t="retake"></button></div>
+      <div class="msg" id="msg"><div id="msgText"></div><div class="btns"><button class="primary" id="msgBtn"></button><button class="linkbtn" id="msgHow" data-t="howTo"></button></div></div>
       <div class="camfoot">
         <div class="hint" id="hint"></div>
         <button class="shutter" id="shutter" aria-label="Scan"><span></span></button>
@@ -195,23 +259,37 @@
       </div>
     </div>
     <div style="height:14px"></div>
-    <!-- no capture attribute: the phone's own chooser offers camera and library, and it opens in every browser we have seen -->
     <input type="file" id="file" accept="image/*">
     <input type="file" id="fileGallery" accept="image/*">
   </section>
 
+  <section class="screen confirm" id="confirm" hidden>
+    <div class="head" style="padding-inline:0"><div class="brand" data-t="title"></div><div class="lang"><button class="lang-ar">عربي</button><button class="lang-en">EN</button></div></div>
+    <h2 data-t="confirmTitle"></h2>
+    <p class="sub" data-t="confirmSub"></p>
+    <dl class="kv" id="kv"></dl>
+    <p class="flags" id="confirmFlags"></p>
+    <div class="actions">
+      <button class="primary" id="confirmGo" data-t="confirmGo"></button>
+      <button class="secondary" id="confirmEdit" data-t="confirmEdit"></button>
+    </div>
+  </section>
+
   <section class="screen result" id="result" hidden>
-    <div class="head" style="padding-inline:0"><div class="brand"><span data-t="title"></span></div></div>
+    <div class="head" style="padding-inline:0"><div class="brand" data-t="title"></div><div class="lang"><button class="lang-ar">عربي</button><button class="lang-en">EN</button></div></div>
     <div class="product"><img class="thumb" id="thumb" alt=""><div><h2 id="pname"></h2><p id="pmeta"></p></div></div>
     <div class="band" id="band" aria-label="Nutri-Mark A to E"><b data-g="A">A</b><b data-g="B">B</b><b data-g="C">C</b><b data-g="D">D</b><b data-g="E">E</b></div>
+    <div class="bandends result-ends in"><span data-t="bandBest"></span><span data-t="bandWorst"></span></div>
     <div class="verdict"><span class="letter" id="letter">D</span><div class="meaning" id="meaning"></div></div>
     <ul class="reasons" id="reasons"></ul>
     <dl class="values" id="values"></dl>
     <div class="per" id="per"></div>
+    <div class="flagsline" id="flagsline"></div>
     <div class="whatif" id="whatif">
       <h4 data-t="whatif"></h4>
       <div class="row"><input type="range" id="cut" min="0" max="40" step="5" value="0" aria-label="Sugar reduction"><output id="cutout"></output></div>
       <div class="becomes" id="becomes"></div>
+      <div class="note" data-t="whatifNote"></div>
     </div>
     <p class="foot" id="foot" data-t="foot"></p>
     <button class="again" id="again" data-t="again"></button>
@@ -221,82 +299,136 @@
 <script type="module">
   import { computeGrade, reasons as engineReasons } from "./engine/nutrimark.js";
   const BACKEND = "https://nutrimark-backend.dcl-ibrahim.workers.dev";
-  // The page grades nothing itself; the rules are only for the What-if slider. If they fail to load, the slider hides and everything else runs.
   let rules = null;
-  fetch("./engine/rules.json").then(r => r.json()).then(j => { rules = j; }).catch(e => console.warn("rules.json unavailable, What-if disabled", e));   // never block the page on this
+  fetch("./engine/rules.json").then(r => r.json()).then(j => { rules = j; }).catch(e => console.warn("rules.json unavailable, What-if disabled", e));
 
   const S = {
-    ar:{ title:"علامة التغذية", introTitle:"علامة التغذية", introLine:"صوّر جدول القيم الغذائية على أي منتج، واحصل على درجته من A إلى E خلال ثوانٍ", introGo:"امسح منتجاً",
-      placeholder:"اضغط الزر لفتح الكاميرا، ثم صوّر جدول القيم الغذائية بوضوح", gallery:"أو اختر صورة من الاستوديو", hint:"وجّه الكاميرا نحو جدول القيم الغذائية ثم اضغط", reading:"جارٍ قراءة الملصق…", sending:"جارٍ الإرسال…",
-      opening:"اختر «التقاط صورة» أو صورة من الاستوديو…", retake:"صوّر مرة أخرى", notFood:"هذه ليست صورة ملصق غذائي. صوّر جدول القيم الغذائية.", retakeMsg:"لم تُقرأ الصورة بوضوح كافٍ. قرّب الكاميرا من الجدول وتجنّب الانعكاس.", errMsg:"تعذّر الاتصال بخدمة القراءة. حاول مرة أخرى.",
-      noTable:"لم يظهر جدول القيم الغذائية في الصورة. أدر العبوة إلى الجهة التي تحمل الجدول (الطاقة، الدهون، السكريات، الملح) وصوّره كاملاً.",
-      incomplete:m=>`قُرئ الملصق، لكنه لا يذكر ${m}، ولا يمكن حساب الدرجة بدونها. هذا نقص في الملصق نفسه.`,
-      missingNames:{sugar_g:"السكريات",satfat_g:"الدهون المشبعة",salt:"الملح",fat_g:"الدهون"},
-      waterNote:"ماء شرب عادي: الدرجة A بحكم التعريف، دون جدول قيم غذائية.",
-      meaning:{A:"الأفضل تغذوياً",B:"جيد",C:"متوسط",D:"منخفض",E:"الأدنى تغذوياً"},
-      meaningSub:{A:"منخفض السعرات والسكر والملح",B:"منخفض عموماً في السكر والملح",C:"كميات معتدلة من السكر أو الملح",D:"مرتفع نسبياً في السكر أو الدهون أو الملح",E:"مرتفع في السكر والدهون المشبعة والملح"},
-      reasons:{sugar_g:"سكريات مرتفعة",energy_kJ:"سعرات مرتفعة",satfat_g:"دهون مشبعة مرتفعة",salt_g:"ملح مرتفع",sweeteners:"يحتوي على محليات",energy_from_satfat_kJ:"دهون مشبعة مرتفعة",satfat_ratio_pct:"نسبة عالية من الدهون المشبعة"},
-      values:{energy_kJ:"الطاقة",satfat_g:"دهون مشبعة",sugar_g:"سكريات",salt_g:"ملح",fibre_g:"ألياف",protein_g:"بروتين",fat_g:"دهون",carb_g:"كربوهيدرات"},
-      cat:{general:"غذاء عام",cheese:"جبن",red_meat:"لحوم حمراء",fats:"دهون وزيوت",beverages:"مشروب"},
-      per:(b,conv)=>conv?(b==="per_100ml"?"القيم محوّلة إلى 100 مل من حصة الملصق":"القيم محوّلة إلى 100 غ من حصة الملصق"):(b==="per_100ml"?"القيم لكل 100 مل كما وردت على الملصق":"القيم لكل 100 غ كما وردت على الملصق"),
+    ar:{ title:"علامة التغذية", introTitle:"علامة التغذية",
+      introLine:"صوّر جدول القيم الغذائية خلف العبوة، واحصل على درجة المنتج من A (الأفضل) إلى E (الأدنى) خلال ثوانٍ",
+      introGo:"صوّر جدول القيم الغذائية", bandBest:"الأفضل", bandWorst:"الأدنى",
+      guideTitle:"الجدول عادةً خلف العبوة", guide1:"اقلب العبوة إلى الجهة التي تحمل جدول القيم الغذائية.", guide2:"صوّر الجدول كاملاً داخل الإطار.", guide3:"تجنّب انعكاس الضوء والميل.",
+      guideOpen:"فتح الكاميرا", guideSkip:"تخطّي", howTo:"كيف أصوّر الجدول؟",
+      placeholder:"اضغط الزر لفتح الكاميرا. صوّر جدول القيم الغذائية خلف العبوة، كاملاً وبوضوح.", hint:"اضغط لفتح الكاميرا", gallery:"أو اختر صورة من صور هاتفك",
+      opening:"اختر الكاميرا لتصوير الجدول، أو صورة من هاتفك…", sending:"جارٍ الإرسال…", reading:"جارٍ تحليل الصورة…", readingSlow:"ما زالت القراءة جارية… قد تستغرق حتى نصف دقيقة.",
+      retake:"صوّر مرة أخرى", retakeOtherSide:"صوّر الجهة الأخرى",
+      notFood:"لم نجد ملصقاً غذائياً في هذه الصورة. صوّر جدول القيم الغذائية خلف العبوة.",
+      retakeMsg:"لم نتمكّن من قراءة الأرقام بوضوح. قرّب الكاميرا من الجدول، واجعله مستقيماً داخل الإطار، وتجنّب انعكاس الضوء.",
+      noTable:"لم يظهر جدول القيم الغذائية في الصورة. اقلب العبوة إلى الجهة التي تحمل الجدول (الطاقة، الدهون، السكريات، الملح) وصوّر الجدول كاملاً.",
+      errMsg:"تعذّر الوصول إلى خدمة القراءة. تحقّق من الاتصال وحاول مرة أخرى.", timeoutMsg:"استغرقت القراءة وقتاً أطول من المعتاد. حاول مرة أخرى، أو قرّب الكاميرا من الجدول.",
       badPhoto:"تعذّر فتح هذه الصورة. جرّب التقاطها مرة أخرى.",
-      whatif:"ماذا لو خفّض المصنّع السكر؟", cut:p=>`سكر أقل بنسبة ${p}%`, becomes:(g,same)=> same?`تبقى الدرجة <b class="${g}">${g}</b>`:`تصبح الدرجة <b class="${g}">${g}</b>`,
-      foot:"تقدير من بيانات الملصق وفق خوارزمية علامة التغذية المنشورة من مجلس أبوظبي للجودة والمطابقة ومسودة اللائحة الفنية الإماراتية. ليس شهادة رسمية.", again:"امسح منتجاً آخر" },
-    en:{ title:"Nutri-Mark", introTitle:"Nutri-Mark", introLine:"Photograph the nutrition table on any product and get its A to E grade in seconds", introGo:"Scan a product",
-      placeholder:"Tap the button to open the camera, then photograph the nutrition table clearly", gallery:"or choose a photo from the gallery", hint:"Point at the nutrition table, then tap", reading:"Reading the label…", sending:"Sending…",
-      opening:"Choose “Take photo” or a photo from your library…", retake:"Take another photo", notFood:"That is not a food label. Photograph the nutrition table.", retakeMsg:"The label could not be read clearly. Move closer to the table and avoid glare.", errMsg:"Could not reach the reading service. Try again.",
-      noTable:"The nutrition table is not in this photo. Turn the pack to the side that lists energy, fat, sugars and salt, and photograph the whole table.",
-      incomplete:m=>`The label was read, but it does not list ${m}, and no grade can be computed without them. That is a gap in the label itself.`,
-      missingNames:{sugar_g:"sugars",satfat_g:"saturated fat",salt:"salt",fat_g:"fat"},
-      waterNote:"Plain drinking water: grade A by definition, no nutrition table needed.",
-      meaning:{A:"Best",B:"Good",C:"Moderate",D:"Low",E:"Lowest"},
-      meaningSub:{A:"Low in energy, sugar and salt",B:"Generally low in sugar and salt",C:"Moderate sugar or salt",D:"Relatively high in sugar, fat or salt",E:"High in sugar, saturated fat and salt"},
-      reasons:{sugar_g:"High in sugar",energy_kJ:"High in energy",satfat_g:"High in saturated fat",salt_g:"High in salt",sweeteners:"Contains sweeteners",energy_from_satfat_kJ:"High in saturated fat",satfat_ratio_pct:"High share of saturated fat"},
-      values:{energy_kJ:"Energy",satfat_g:"Saturates",sugar_g:"Sugars",salt_g:"Salt",fibre_g:"Fibre",protein_g:"Protein",fat_g:"Fat",carb_g:"Carbohydrate"},
-      cat:{general:"General food",cheese:"Cheese",red_meat:"Red meat",fats:"Fats and oils",beverages:"Beverage"},
-      per:(b,conv)=>conv?(b==="per_100ml"?"Values converted to per 100 ml from the label's serving":"Values converted to per 100 g from the label's serving"):(b==="per_100ml"?"Values per 100 ml as printed on the label":"Values per 100 g as printed on the label"),
+      declinedMsg:"تعذّرت قراءة هذه الصورة. صوّر جدول القيم الغذائية بوضوح وحاول مرة أخرى.",
+      incomplete:m=>`قُرئ الملصق، لكن هذه القيم غير مذكورة فيه: ${m}. ولا يمكن حساب الدرجة بدون هذه القيم. تأكّد أنك صوّرت جدول القيم الغذائية كاملاً؛ فإن كان كاملاً، فالنقص في الملصق نفسه.`,
+      missingNames:{sugar_g:"السكريات",satfat_g:"الدهون المشبعة",salt:"الملح",fat_g:"الدهون"},
+      confirmTitle:"هذا ما قُرئ من الملصق", confirmSub:"تحقّق من الأرقام قبل حساب الدرجة. يمكنك تصحيح أي قيمة.", confirmGo:"احسب الدرجة", confirmEdit:"صحّح القيم", confirmSave:"احفظ واحسب",
+      kv:{product:"المنتج",category:"الفئة",energy:"السعرات الحرارية",sugar_g:"السكريات",satfat_g:"الدهون المشبعة",salt:"الملح",basis:"الأساس"},
+      basisNames:{per_100g:"لكل 100 غ",per_100ml:"لكل 100 مل",per_serving:"لكل حصة"},
+      meaning:{A:"الأفضل تغذوياً",B:"جيد تغذوياً",C:"متوسط تغذوياً",D:"ضعيف تغذوياً",E:"الأدنى تغذوياً"},
+      meaningSub:{A:"منخفض في السعرات والسكريات والملح",B:"منخفض عموماً في السكريات والملح",C:"كميات معتدلة من السكريات أو الملح",D:"مرتفع نسبياً في السكريات أو الدهون أو الملح",E:"مرتفع في السكريات والدهون المشبعة والملح"},
+      reasons:{sugar_g:"سكريات مرتفعة",energy_kJ:"سعرات حرارية مرتفعة",satfat_g:"دهون مشبعة مرتفعة",salt_g:"ملح مرتفع",sweeteners:"يحتوي على مُحلّيات",energy_from_satfat_kJ:"دهون مشبعة مرتفعة",satfat_ratio_pct:"نسبة عالية من الدهون المشبعة"},
+      pos:{fibre_g:"ألياف مرتفعة",protein_g:"بروتين مرتفع",fvl_pct:"نسبة عالية من الفواكه والخضروات"},
+      noReasons:"لا يبرز في هذا المنتج عنصر مرتفع.", waterLine:"ماء نقي: بلا سكريات وبلا سعرات.", bevNoA:"في المشروبات، الدرجة A للماء النقي فقط.",
+      values:{energy_kJ:"سعرات حرارية",satfat_g:"دهون مشبعة",sugar_g:"سكريات",salt_g:"ملح",fibre_g:"ألياف",protein_g:"بروتين",fat_g:"دهون",carb_g:"كربوهيدرات"},
+      cat:{general:"غذاء عام",cheese:"جبن",red_meat:"لحوم حمراء",fats:"دهون وزيوت",beverages:"مشروب"},
+      per:(u,serv,sod)=>{const base=u==="ml"?"100 مل":"100 غ"; if(serv&&sod) return `القيم محوّلة إلى ${base} من حصة الملصق، والملح محسوب من الصوديوم`; if(serv) return `القيم محوّلة إلى ${base} من حصة الملصق`; if(sod) return `القيم لكل ${base} كما وردت على الملصق، والملح محسوب من الصوديوم`; return `القيم لكل ${base} كما وردت على الملصق`;},
+      waterNote:"ماء شرب عادي: الدرجة A بحكم التعريف، دون جدول قيم غذائية.",
+      flagsLine:l=>`غير مذكور في الملصق: ${l}. حُسب صفراً في الدرجة.`, flagNames:{fibre_not_declared_counted_as_0:"الألياف",protein_not_declared_counted_as_0:"البروتين"},
+      whatif:"ماذا لو خفّض المصنِّع السكريات؟", cut:p=>`تخفيض السكريات ${p}%`, whatifIdle:"حرّك المؤشّر لترى الأثر على الدرجة", becomes:(g,same)=> same?`تبقى الدرجة <b class="${g}">${g}</b>`:`تصبح الدرجة <b class="${g}">${g}</b>`,
+      whatifNote:"تقدير يفترض بقاء بقية القيم كما هي، مع خصم سعرات السكر المُزال.",
+      foot:"قرأت أرقامَ الملصق خدمةُ ذكاء اصطناعي من صورتك، وقد تخطئ. الدرجة محسوبة من هذه الأرقام وفق خوارزمية علامة التغذية المعتمدة، وهي تقدير لأغراض العرض، وليست شهادة رسمية.",
+      again:"صوّر منتجاً آخر" },
+    en:{ title:"Nutri-Mark", introTitle:"Nutri-Mark",
+      introLine:"Photograph the nutrition table on the back of the pack and get the product's grade, A (best) to E (lowest), in seconds",
+      introGo:"Photograph the nutrition table", bandBest:"Best", bandWorst:"Lowest",
+      guideTitle:"The table is usually on the back", guide1:"Turn the pack over to the side with the nutrition table.", guide2:"Photograph the whole table inside the frame.", guide3:"Avoid glare and tilt.",
+      guideOpen:"Open the camera", guideSkip:"Skip", howTo:"How do I photograph the table?",
+      placeholder:"Tap the button to open the camera. Photograph the nutrition table on the back of the pack, whole and in focus.", hint:"Tap to open the camera", gallery:"Or choose a photo from your phone",
+      opening:"Choose the camera to photograph the table, or a photo from your phone…", sending:"Sending…", reading:"Reading your photo…", readingSlow:"Still reading… this can take up to half a minute.",
+      retake:"Take another photo", retakeOtherSide:"Photograph the other side",
+      notFood:"No food label in this photo. Photograph the nutrition table on the back of the pack.",
+      retakeMsg:"We could not read the numbers clearly. Move closer to the table, keep it straight in the frame, and avoid glare.",
+      noTable:"The nutrition table is not in this photo. Turn the pack over to the side that lists energy, fat, sugars and salt, and photograph the whole table.",
+      errMsg:"Could not reach the reading service. Check your connection and try again.", timeoutMsg:"Reading took longer than usual. Try again, or move closer to the table.",
       badPhoto:"This photo could not be opened. Try taking it again.",
-      whatif:"What if the maker cut the sugar?", cut:p=>`${p}% less sugar`, becomes:(g,same)=> same?`Grade stays <b class="${g}">${g}</b>`:`Grade becomes <b class="${g}">${g}</b>`,
-      foot:"Estimated from the label with the Nutri-Mark algorithm published by the Abu Dhabi Quality and Conformity Council and the UAE draft technical regulation. Not an official certificate.", again:"Scan another product" }
+      declinedMsg:"This photo could not be read. Photograph the nutrition table clearly and try again.",
+      incomplete:m=>`The label was read, but these values are not listed on it: ${m}. The grade cannot be calculated without those values. Check that you photographed the whole nutrition table; if you did, the gap is in the label itself.`,
+      missingNames:{sugar_g:"sugars",satfat_g:"saturated fat",salt:"salt",fat_g:"fat"},
+      confirmTitle:"This is what was read from the label", confirmSub:"Check the numbers before the grade is calculated. You can correct any value.", confirmGo:"Calculate the grade", confirmEdit:"Correct the values", confirmSave:"Save and calculate",
+      kv:{product:"Product",category:"Category",energy:"Calories",sugar_g:"Sugars",satfat_g:"Saturated fat",salt:"Salt",basis:"Basis"},
+      basisNames:{per_100g:"per 100 g",per_100ml:"per 100 ml",per_serving:"per serving"},
+      meaning:{A:"Nutritionally best",B:"Nutritionally good",C:"Nutritionally moderate",D:"Nutritionally poor",E:"Nutritionally lowest"},
+      meaningSub:{A:"Low in calories, sugars and salt",B:"Generally low in sugars and salt",C:"Moderate sugars or salt",D:"Relatively high in sugars, fat or salt",E:"High in sugars, saturated fat and salt"},
+      reasons:{sugar_g:"High in sugars",energy_kJ:"High in calories",satfat_g:"High in saturated fat",salt_g:"High in salt",sweeteners:"Contains sweeteners",energy_from_satfat_kJ:"High in saturated fat",satfat_ratio_pct:"High share of saturated fat"},
+      pos:{fibre_g:"High in fibre",protein_g:"High in protein",fvl_pct:"High share of fruit and vegetables"},
+      noReasons:"No nutrient stands out as high in this product.", waterLine:"Plain water: no sugars, no calories.", bevNoA:"Among drinks, only plain water reaches A.",
+      values:{energy_kJ:"Calories",satfat_g:"Saturates",sugar_g:"Sugars",salt_g:"Salt",fibre_g:"Fibre",protein_g:"Protein",fat_g:"Fat",carb_g:"Carbohydrate"},
+      cat:{general:"General food",cheese:"Cheese",red_meat:"Red meat",fats:"Fats and oils",beverages:"Beverage"},
+      per:(u,serv,sod)=>{const base=u==="ml"?"100 ml":"100 g"; if(serv&&sod) return `Values converted to per ${base} from the label's serving; salt calculated from sodium`; if(serv) return `Values converted to per ${base} from the label's serving`; if(sod) return `Values per ${base} as printed on the label; salt calculated from sodium`; return `Values per ${base} as printed on the label`;},
+      waterNote:"Plain drinking water: grade A by definition, no nutrition table needed.",
+      flagsLine:l=>`Not declared on the label: ${l}. Counted as zero in the grade.`, flagNames:{fibre_not_declared_counted_as_0:"fibre",protein_not_declared_counted_as_0:"protein"},
+      whatif:"What if the maker cut the sugars?", cut:p=>`Sugars cut by ${p}%`, whatifIdle:"Move the slider to see the effect on the grade", becomes:(g,same)=> same?`Grade stays <b class="${g}">${g}</b>`:`Grade becomes <b class="${g}">${g}</b>`,
+      whatifNote:"An estimate, assuming the other values stay the same, minus the calories of the removed sugar.",
+      foot:"An AI service read the label's numbers from your photo, and it can get them wrong. The grade is calculated from those numbers with the official Nutri-Mark algorithm. It is an estimate for this demonstration, not an official certificate.",
+      again:"Photograph another product" }
   };
   const COL={A:"var(--A)",B:"var(--B)",C:"var(--C)",D:"var(--D)",E:"var(--E)"};
   const $=id=>document.getElementById(id);
-  const phone=$("phone"), intro=$("intro"), scan=$("scan"), result=$("result"), cam=$("cam"), hint=$("hint");
-  let lang="ar", look="verdict", busy=false, timers=[], current=null, shownGrade=null, photoDataUrl=null;
+  const phone=$("phone"), intro=$("intro"), guide=$("guide"), scan=$("scan"), confirm=$("confirm"), result=$("result"), cam=$("cam"), hint=$("hint");
+  let lang="ar", look="verdict", busy=false, timers=[], current=null, shownGrade=null, photoDataUrl=null, editing=false;
   const later=(fn,ms)=>timers.push(setTimeout(fn,ms)); const clearTimers=()=>{timers.forEach(clearTimeout);timers=[]};
-  const deviceId=(()=>{try{let d=localStorage.getItem("nm_device"); if(!d){d=crypto.randomUUID(); localStorage.setItem("nm_device",d);} return d;}catch{return "anon-"+Math.random().toString(36).slice(2);}})();
+  const store={get:k=>{try{return localStorage.getItem(k)}catch{return null}}, set:(k,v)=>{try{localStorage.setItem(k,v)}catch{}}};
+  const deviceId=(()=>{let d=store.get("nm_device"); if(!d){ d=(crypto.randomUUID?crypto.randomUUID():"d-"+Math.random().toString(36).slice(2)); store.set("nm_device",d);} return d;})();
+  const isNum=x=>typeof x==="number"&&Number.isFinite(x); const round1=x=>Math.round(x*10)/10;
+  if(new URLSearchParams(location.search).get("looks")==="1") document.body.classList.add("dev");
 
+  // ---------- language and look ----------
   function applyStrings(){
     const s=S[lang];
     document.querySelectorAll("[data-t]").forEach(el=>{const k=el.dataset.t; if(typeof s[k]==="string") el.textContent=s[k];});
     phone.dir=lang==="ar"?"rtl":"ltr"; phone.lang=lang; document.documentElement.dir=phone.dir; document.documentElement.lang=lang;
+    document.querySelectorAll(".lang-ar").forEach(b=>b.setAttribute("aria-pressed",lang==="ar")); document.querySelectorAll(".lang-en").forEach(b=>b.setAttribute("aria-pressed",lang==="en"));
+    $("ilang-ar").setAttribute("aria-pressed",lang==="ar"); $("ilang-en").setAttribute("aria-pressed",lang==="en");
     if(!busy) hint.textContent=s.hint;
-    if(current) renderResultText();
+    if(current && !confirm.hidden) renderConfirm();
+    if(current && !result.hidden) renderResultText();
   }
-  function setLang(l){ lang=l; [["lang-ar","ar"],["lang-en","en"],["ilang-ar","ar"],["ilang-en","en"]].forEach(([id,v])=>$(id).setAttribute("aria-pressed", l===v)); applyStrings(); }
+  function setLang(l){ lang=l; applyStrings(); }
+  document.querySelectorAll(".lang-ar").forEach(b=>b.onclick=()=>setLang("ar")); document.querySelectorAll(".lang-en").forEach(b=>b.onclick=()=>setLang("en"));
+  $("ilang-ar").onclick=()=>setLang("ar"); $("ilang-en").onclick=()=>setLang("en");
   function setLook(k){ look=k; phone.dataset.look=k; ["verdict","label","scanner"].forEach(n=>$("look-"+n).setAttribute("aria-pressed", k===n));
     if(!result.hidden){ scan.hidden=(k!=="scanner"); setBadge(shownGrade,false); } }
+  $("look-verdict").onclick=()=>setLook("verdict"); $("look-label").onclick=()=>setLook("label"); $("look-scanner").onclick=()=>setLook("scanner");
+
+  // ---------- screen transitions ----------
+  function swapTo(from, to, keepFrom=false){
+    clearTimers(); if(!keepFrom) from.classList.add("leaving");
+    later(()=>{ if(!keepFrom){ from.hidden=true; from.classList.remove("leaving"); }
+      to.hidden=false; to.classList.add("entering"); to.scrollTop=0;
+      requestAnimationFrame(()=>requestAnimationFrame(()=>to.classList.remove("entering"))); },380);
+  }
 
   // ---------- intro ----------
   function playIntro(){
     const cyc=$("cycle"), mb=$("miniband");
-    if(matchMedia("(prefers-reduced-motion: reduce)").matches){ cyc.style.display="none"; mb.classList.add("in"); $("introCopy").classList.add("in"); $("introActions").classList.add("in"); return; }
-    const GR=["A","B","C","D","E"], step=280, t0=250;
+    if(matchMedia("(prefers-reduced-motion: reduce)").matches){ cyc.style.display="none"; mb.classList.add("in"); $("bandends").classList.add("in"); $("introCopy").classList.add("in"); $("introActions").classList.add("in"); return; }
+    const GR=["A","B","C","D","E"], step=260, t0=200;
     GR.forEach((g,i)=> later(()=>{ cyc.textContent=g; cyc.style.color=COL[g]; cyc.classList.remove("pop"); void cyc.offsetWidth; cyc.classList.add("pop"); }, t0+i*step));
     const tEnd=t0+GR.length*step;
-    later(()=>cyc.classList.add("out"), tEnd+120); later(()=>mb.classList.add("in"), tEnd+330);
-    later(()=>$("introCopy").classList.add("in"), tEnd+900); later(()=>$("introActions").classList.add("in"), tEnd+1150);
+    later(()=>$("introActions").classList.add("in"), 800);            // the button is usable early; the band finishes behind it
+    later(()=>cyc.classList.add("out"), tEnd+100); later(()=>{ mb.classList.add("in"); }, tEnd+300);
+    later(()=>{ $("introCopy").classList.add("in"); $("bandends").classList.add("in"); }, tEnd+800);
   }
-  function go(){ clearTimers(); $("introActions").classList.add("in"); $("introCopy").classList.add("in"); intro.classList.add("leaving");
-    later(()=>{ intro.hidden=true; intro.classList.remove("leaving"); scan.hidden=false; scan.classList.add("entering");
-      requestAnimationFrame(()=>requestAnimationFrame(()=>scan.classList.remove("entering"))); },380); }
+  $("go").addEventListener("click", ()=>{ const seen=store.get("nm_guide_seen")==="1"; swapTo(intro, seen?scan:guide); });
+
+  // ---------- guidance card ----------
+  function openGuide(from){ swapTo(from, guide, from===scan); }
+  $("guideOpen").addEventListener("click", ()=>{ store.set("nm_guide_seen","1"); swapTo(guide, scan); later(()=>$("file").click(), 420); });
+  $("guideSkip").addEventListener("click", ()=>{ store.set("nm_guide_seen","1"); swapTo(guide, scan); });
 
   // ---------- camera ----------
   $("shutter").addEventListener("click", ()=>{ if(busy) return; hint.textContent=S[lang].opening; $("file").click(); });
   $("galleryBtn").addEventListener("click", ()=>{ if(!busy) $("fileGallery").click(); });
   const onPick = async e=>{ const f=e.target.files && e.target.files[0]; e.target.value=""; if(f) await handlePhoto(f); else if(!busy) hint.textContent=S[lang].hint; };
-  $("file").addEventListener("change", onPick);
-  $("fileGallery").addEventListener("change", onPick);
+  $("file").addEventListener("change", onPick); $("fileGallery").addEventListener("change", onPick);
 
   async function shrink(file, max=1280){
     const bmp = await createImageBitmap(file).catch(()=>null);
@@ -307,72 +439,132 @@
     const dataUrl=c.toDataURL("image/jpeg",0.85);
     return { dataUrl, base64:dataUrl.split(",")[1] };
   }
-  function showMsg(text, withBtn=true){ $("msgText").textContent=text; $("msgBtn").style.display=withBtn?"":"none"; $("msg").classList.add("show"); }
-  $("msgBtn").addEventListener("click", ()=>{ $("msg").classList.remove("show"); $("file").click(); });
+  let msgAction=null;
+  function showMsg(text, btnLabel, action, withHow=true){
+    $("msgText").textContent=text; $("msgBtn").textContent=btnLabel; msgAction=action; $("msgHow").style.display=withHow?"":"none"; $("msg").classList.add("show"); cam.classList.add("hasmsg");
+    $("preview").classList.remove("show"); $("preview").src=""; $("placeholder").style.display="";
+  }
+  function hideMsg(){ $("msg").classList.remove("show"); cam.classList.remove("hasmsg"); }
+  $("msgBtn").addEventListener("click", ()=>{ hideMsg(); if(msgAction==="guide") openGuide(scan); else $("file").click(); });
+  $("msgHow").addEventListener("click", ()=>{ hideMsg(); openGuide(scan); });
 
   async function handlePhoto(file){
-    busy=true; clearTimers(); $("msg").classList.remove("show");
+    busy=true; clearTimers(); hideMsg();
     const s=S[lang];
     hint.textContent=s.sending;
     let shrunk;
     try { shrunk = await shrink(file); }
-    catch(err){ busy=false; hint.textContent=s.hint; showMsg(s.badPhoto); return; }
+    catch(err){ busy=false; hint.textContent=s.hint; showMsg(s.badPhoto, s.retake, "camera", false); return; }
     const { dataUrl, base64 } = shrunk;
     photoDataUrl=dataUrl; $("preview").src=dataUrl; $("preview").classList.add("show"); $("placeholder").style.display="none";
     cam.classList.add("scanning"); hint.textContent=s.reading;
-    let data;
-    const ctrl=new AbortController(); const killer=setTimeout(()=>ctrl.abort(), 75000);   // two reads plus a fallback can take a while; never hang forever
+    const slow=setTimeout(()=>{ if(busy) hint.textContent=S[lang].readingSlow; }, 8000);
+    const ctrl=new AbortController(); const killer=setTimeout(()=>ctrl.abort(), 45000);
+    let data, failure=null;
     try{
       const r=await fetch(BACKEND+"/scan",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({image_base64:base64,media_type:"image/jpeg",device_id:deviceId}),signal:ctrl.signal});
-      let text=await r.text();
+      const text=await r.text();
       try { data=JSON.parse(text); } catch { data={error:"HTTP "+r.status}; }
-      if(!r.ok) throw new Error(data.error||("HTTP "+r.status));
-    }catch(err){
-      clearTimeout(killer); cam.classList.remove("scanning"); busy=false; hint.textContent=s.hint; showMsg(s.errMsg+" ("+String(err.name==="AbortError"?"timeout":err.message).slice(0,80)+")"); return;
-    }
-    clearTimeout(killer);
-    cam.classList.remove("scanning");
-    const act=data.decision && data.decision.action;
-    if(act==="not_food"){ busy=false; hint.textContent=s.hint; showMsg(s.notFood); return; }
-    if(act==="incomplete_label"){
-      busy=false; hint.textContent=s.hint;
-      const names=(data.decision.missing||[]).map(k=>s.missingNames[k]||k);
-      showMsg(s.incomplete(names.join(lang==="ar"?" و":", "))); return;
-    }
+      if(!r.ok) failure = r.status===429||r.status===503 ? "busy" : "error";
+    }catch(err){ failure = err.name==="AbortError" ? "timeout" : "error"; console.warn("scan failed", err); }
+    clearTimeout(slow); clearTimeout(killer); cam.classList.remove("scanning");
+    if(failure){ busy=false; hint.textContent=s.hint; showMsg(failure==="timeout"?s.timeoutMsg:s.errMsg, s.retake, "camera", false); return; }
+    const act=data.decision && data.decision.action, rs=(data.decision&&data.decision.reasons)||[];
+    if(act==="not_food"){ busy=false; hint.textContent=s.hint; showMsg(s.notFood, s.retakeOtherSide, "guide"); return; }
+    if(act==="incomplete_label"){ busy=false; hint.textContent=s.hint; const names=(data.decision.missing||[]).map(k=>s.missingNames[k]||k); showMsg(s.incomplete(names.join(lang==="ar"?"، ":", ")), s.retake, "camera"); return; }
     if(act!=="grade" || !data.grade || !data.grade.ok){
       busy=false; hint.textContent=s.hint;
-      const rs=(data.decision&&data.decision.reasons)||[];
-      const noValues = rs.includes("missing_energy") && rs.includes("missing_sugar_g");   // reader saw the pack but no table
-      showMsg(noValues ? s.noTable : s.retakeMsg); return;
+      if(rs.includes("no_table_in_photo")) showMsg(s.noTable, s.retakeOtherSide, "guide");
+      else if(rs.includes("reader_declined")) showMsg(s.declinedMsg, s.retake, "camera");
+      else showMsg(s.retakeMsg, s.retake, "camera"); return;
     }
-    current=data; showResult();
+    current=data; busy=false; editing=false;
+    if(rs.includes("plain_water")) showResult(); else { renderConfirm(); swapTo(scan, confirm); }
+  }
+
+  // ---------- confirm and correct ----------
+  function kcalOf(v){ return isNum(v.energy_kcal)?v.energy_kcal:(isNum(v.energy_kJ)?Math.round(v.energy_kJ/4.184):null); }
+  function saltOf(v){ return isNum(v.salt_g)?v.salt_g:(isNum(v.sodium_mg)?round1(v.sodium_mg/1000*2.5):null); }
+  function renderConfirm(){
+    const s=S[lang], d=current, rd=d.reading, v=d.per100||{};
+    const unit=(rd.basis==="per_100ml"||rd.category==="beverages")?"ml":"g";
+    const G=lang==="ar"?"غ":"g";
+    const rows=[["product",rd.product_name||s.cat[rd.category]||"–",null],["category",s.cat[rd.category]||rd.category,"category"],["energy",kcalOf(v),"energy",{unit:"kcal",ltr:true}],["sugar_g",v.sugar_g,"sugar_g",{unit:G}],["satfat_g",v.satfat_g,"satfat_g",{unit:G}],["salt",saltOf(v),"salt",{unit:G}],["basis",s.basisNames[rd.basis==="per_serving"?(unit==="ml"?"per_100ml":"per_100g"):rd.basis]||"–",null]];
+    $("kv").innerHTML = rows.map(([k,val,field,o])=>{
+      let cell;
+      const wrap = x => (o&&o.ltr) ? `<span dir="ltr">${x}</span>` : x;   // "335 kcal" must not render as "kcal 335" in Arabic
+      if(editing && field==="category") cell=`<select id="ed-category">${Object.keys(s.cat).map(c=>`<option value="${c}" ${c===rd.category?"selected":""}>${s.cat[c]}</option>`).join("")}</select>`;
+      else if(editing && field && o) cell=wrap(`<input id="ed-${field}" type="number" inputmode="decimal" step="0.1" min="0" value="${isNum(val)?val:""}"> ${o.unit}`);
+      else cell = isNum(val)? wrap(`${val} ${o?o.unit:""}`) : (val||"–");
+      return `<dt>${s.kv[k]}</dt><dd>${cell}</dd>`; }).join("");
+    $("confirmGo").style.display = editing ? "none" : "";
+    const flags=(d.flags||[]).map(f=>s.flagNames[f]).filter(Boolean);
+    $("confirmFlags").textContent = flags.length ? s.flagsLine(flags.join(lang==="ar"?" و":" and ")) : "";
+    $("confirmEdit").textContent = editing ? s.confirmSave : s.confirmEdit;
+  }
+  $("confirmGo").addEventListener("click", ()=>{ swapTo(confirm, result, true); showResult(true); });
+  $("confirmEdit").addEventListener("click", async ()=>{
+    if(!editing){ editing=true; renderConfirm(); return; }
+    const num=id=>{ const el=$(id); if(!el||el.value==="") return null; const n=parseFloat(el.value); return Number.isFinite(n)?n:null; };
+    const rd=current.reading, v=current.per100||{};
+    const values={ sugar_g:num("ed-sugar_g"), satfat_g:num("ed-satfat_g"), salt_g:num("ed-salt") };
+    const kcal=num("ed-energy"); if(isNum(kcal)){ values.energy_kcal=kcal; values.energy_kJ=Math.round(kcal*4.2); }
+    const category=$("ed-category")?$("ed-category").value:rd.category;
+    const base={...rd, basis: rd.basis==="per_serving"?((rd.category==="beverages"||rd.basis==="per_100ml")?"per_100ml":"per_100g"):rd.basis, serving_size:null, values:{...v, sodium_mg:null}};
+    $("confirmEdit").disabled=true;
+    try{
+      const r=await fetch(BACKEND+"/correct",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({scan_id:current.scan_id,device_id:deviceId,reading:base,category,values:Object.fromEntries(Object.entries(values).filter(([,x])=>isNum(x)))})});
+      const data=await r.json();
+      if(r.ok && data.grade && data.grade.ok){ current={...current, reading:data.reading, per100:data.per100, grade:data.grade, reasons:data.reasons, flags:data.flags, engine_input:engineInputFrom(data)}; editing=false; }
+    }catch(err){ console.warn("correct failed",err); }
+    $("confirmEdit").disabled=false; renderConfirm();
+  });
+  function engineInputFrom(data){ // the backend returns the engine input for scans; for corrections rebuild it from per100
+    const v=data.per100||{}, rd=data.reading;
+    return { category: rd.category, energy_kJ:v.energy_kJ, energy_kcal:v.energy_kcal, fat_g:v.fat_g, satfat_g:v.satfat_g, sugar_g:v.sugar_g, salt_g:v.salt_g, sodium_mg:v.sodium_mg, fibre_g:isNum(v.fibre_g)?v.fibre_g:0, protein_g:isNum(v.protein_g)?v.protein_g:0, fvl_pct:isNum(rd.fvl_pct_estimate)?rd.fvl_pct_estimate:0, sweeteners:!!rd.sweeteners_present, water:!!rd.plain_water };
   }
 
   // ---------- result ----------
   function renderResultText(){
-    const s=S[lang], d=current, rd=d.reading, g=d.grade;
+    const s=S[lang], d=current, rd=d.reading, g=d.grade, v=d.per100||{};
+    const isWater=(d.decision&&d.decision.reasons||[]).includes("plain_water");
     $("pname").textContent = rd.product_name || s.cat[rd.category] || "";
     $("pmeta").textContent = [rd.brand, s.cat[rd.category]].filter(Boolean).join(" · ");
-    const converted = rd.basis==="per_serving" || (!isNum((rd.values||{}).salt_g) && isNum((rd.values||{}).sodium_mg));
-    const isWater = (d.decision&&d.decision.reasons||[]).includes("plain_water");
-    $("per").textContent = isWater ? s.waterNote : s.per(rd.basis==="per_100ml"||rd.category==="beverages"?"per_100ml":"per_100g", converted);
-    const v=d.per100||{};
-    const rows=[["energy_kJ",v.energy_kJ,"kJ"],["sugar_g",v.sugar_g,"g"],["satfat_g",v.satfat_g,"g"],["salt_g",isNum(v.salt_g)?v.salt_g:(isNum(v.sodium_mg)?round1(v.sodium_mg/1000*2.5):null),"g"],["fibre_g",v.fibre_g,"g"],["protein_g",v.protein_g,"g"],["fat_g",v.fat_g,"g"],["carb_g",v.carb_g,"g"]];
-    $("values").innerHTML = rows.map(([k,val,u])=>`<div><dt>${s.values[k]}</dt><dd>${isNum(val)?val:"–"}<small>${isNum(val)?u:""}</small></dd></div>`).join("");
-    renderMeaning(shownGrade||g.grade); renderReasons(g); renderWhatIf();
+    const unit=(rd.basis==="per_100ml"||rd.category==="beverages")?"ml":"g";
+    const serv=rd.basis==="per_serving", sod=!isNum((rd.values||{}).salt_g)&&isNum((rd.values||{}).sodium_mg);
+    $("per").textContent = isWater ? s.waterNote : s.per(unit, serv, sod);
+    const flags=(d.flags||[]).map(f=>s.flagNames[f]).filter(Boolean);
+    $("flagsline").textContent = flags.length ? s.flagsLine(flags.join(lang==="ar"?" و":" and ")) : (rd.category==="beverages"&&!isWater ? s.bevNoA : "");
+    const kcal=kcalOf(v);
+    const rows=[["energy_kJ",kcal,"kcal",isNum(v.energy_kJ)?`${v.energy_kJ} kJ`:""],["sugar_g",v.sugar_g,"غ"],["satfat_g",v.satfat_g,"غ"],["salt_g",saltOf(v),"غ"],["fibre_g",v.fibre_g,"غ"],["protein_g",v.protein_g,"غ"],["fat_g",v.fat_g,"غ"],["carb_g",v.carb_g,"غ"]];
+    const u=x=>lang==="ar"?x:(x==="غ"?"g":x);
+    $("values").innerHTML = rows.map(([k,val,un,sub])=>`<div><dt>${s.values[k]}</dt><dd>${isNum(val)?val:"–"}<small>${isNum(val)?u(un):""}</small>${sub?`<span class="kj" dir="ltr">${sub}</span>`:""}</dd></div>`).join("");
+    renderMeaning(shownGrade||g.grade); renderReasons(g, isWater); renderWhatIf();
   }
-  const isNum=x=>typeof x==="number"&&Number.isFinite(x); const round1=x=>Math.round(x*10)/10;
   function renderMeaning(G){ const s=S[lang]; $("meaning").innerHTML=`${s.meaning[G]}<small>${s.meaningSub[G]}</small>`; }
-  function renderReasons(g){
-    const s=S[lang].reasons; const keys=engineReasons(g,3);
-    const settled=!result.hidden&&!busy;
-    $("reasons").innerHTML = keys.map(k=>`<li class="${settled?"in":""}" style="--gcol:${COL[g.grade]}"><i></i>${s[k]||k}</li>`).join("");
+  function renderReasons(g, isWater){
+    const s=S[lang]; const settled=!result.hidden&&!busy;
+    let items=[];
+    if(isWater) items=[{k:"water",t:s.waterLine,pos:true}];
+    else {
+      items = engineReasons(g,3).map(k=>({k,t:s.reasons[k]||k,pos:false}));
+      const p=g.points||{}; for(const k of ["fibre_g","protein_g","fvl_pct"]) if((p[k]||0)>=2 && items.length<3) items.push({k,t:s.pos[k],pos:true});
+      if(items.length===0) items=[{k:"none",t:s.noReasons,pos:true}];
+    }
+    $("reasons").innerHTML = items.map(it=>`<li class="${settled?"in":""} ${it.pos?"pos":""}" style="--gcol:${COL[g.grade]}"><i></i>${it.t}</li>`).join("");
   }
-  function whatIfInput(cut){ const base=current.engine_input; return {...base, sugar_g: round1(base.sugar_g*(1-cut/100))}; }
+  function whatIfInput(cut){
+    const base=current.engine_input; const removed=base.sugar_g*(cut/100);
+    const out={...base, sugar_g: round1(base.sugar_g-removed)};
+    if(isNum(base.energy_kJ)) out.energy_kJ=Math.max(0, Math.round(base.energy_kJ-17*removed));   // sugar carries 17 kJ per gram
+    return out;
+  }
   function renderWhatIf(){
-    const s=S[lang]; const cut=+$("cut").value; $("cutout").textContent=s.cut(cut);
-    if(!rules || !current.engine_input || !isNum(current.engine_input.sugar_g)){ $("whatif").style.display="none"; setHit(current.grade.grade, false); return; }
+    const s=S[lang]; const cut=+$("cut").value;
+    if(!rules || !current.engine_input || !isNum(current.engine_input.sugar_g) || current.engine_input.sugar_g===0){ $("whatif").style.display="none"; setHit(current.grade.grade, false); return; }
     $("whatif").style.display="";
+    $("cutout").textContent=s.cut(cut);
+    if(cut===0){ $("becomes").textContent=s.whatifIdle; setHit(current.grade.grade, current.grade.grade!==shownGrade); return; }
     const g2=computeGrade(rules, whatIfInput(cut)); const g=g2.ok?g2.grade:current.grade.grade;
     $("becomes").innerHTML=s.becomes(g, g===current.grade.grade); $("becomes").style.setProperty("--gcol",COL[g]);
     setHit(g, g!==shownGrade);
@@ -390,17 +582,27 @@
     if(!result.hidden) setBadge(g, animate);
     shownGrade=g; renderMeaning(g);
   }
-  function showResult(){
-    const g=current.grade; shownGrade=null; $("cut").value=0;
+  let revealing=false;
+  function finishReveal(){ // a tap completes every pending animation at once
+    if(!revealing) return; clearTimers(); revealing=false;
+    document.querySelectorAll("#band b").forEach(b=>b.classList.add("on"));
+    const g=current.grade.grade; const L=$("letter"); L.classList.add("land"); setHit(g,false); if(look==="scanner") setBadge(g,true);
+    ["meaning","values","whatif","foot","again"].forEach(id=>$(id).classList.add("in")); document.querySelectorAll("#reasons li").forEach(li=>li.classList.add("in"));
+    busy=false; hint.textContent=S[lang].hint;
+  }
+  result.addEventListener("click", e=>{ if(revealing && !e.target.closest("input,button")) finishReveal(); });
+  function showResult(fromConfirm=false){
+    const g=current.grade; shownGrade=null; $("cut").value=0; busy=true; revealing=true;
     $("thumb").src=photoDataUrl||"";
     document.querySelectorAll("#band b").forEach(b=>b.classList.remove("on","hit","dim"));
     const L=$("letter"); L.classList.remove("land","swap"); L.textContent=g.grade; L.style.color=COL[g.grade];
     ["meaning","values","whatif","foot","again"].forEach(id=>$(id).classList.remove("in"));
     renderResultText(); document.querySelectorAll("#reasons li").forEach(li=>li.classList.remove("in"));
     const overlay=look==="scanner";
-    if(!overlay) scan.classList.add("leaving");
+    if(!fromConfirm){ if(!overlay) scan.classList.add("leaving"); }
     later(()=>{
-      if(!overlay) scan.hidden=true; scan.classList.remove("leaving");
+      if(!fromConfirm){ if(!overlay) scan.hidden=true; scan.classList.remove("leaving"); }
+      else { confirm.hidden=true; if(!overlay) scan.hidden=true; }
       result.hidden=false; result.classList.add("entering"); result.scrollTop=0;
       requestAnimationFrame(()=>requestAnimationFrame(()=>result.classList.remove("entering")));
       const cells=[...document.querySelectorAll("#band b")];
@@ -410,29 +612,23 @@
       later(()=>document.querySelectorAll("#reasons li").forEach((li,i)=>later(()=>li.classList.add("in"), i*140)), 1650);
       later(()=>$("values").classList.add("in"), 2150);
       later(()=>$("whatif").classList.add("in"), 2400);
-      later(()=>{$("foot").classList.add("in"); $("again").classList.add("in"); busy=false; hint.textContent=S[lang].hint;}, 2650);
-    }, 420);
+      later(()=>{$("foot").classList.add("in"); $("again").classList.add("in"); busy=false; revealing=false; hint.textContent=S[lang].hint;}, 2650);
+    }, fromConfirm?0:420);
   }
   function reset(){
-    clearTimers(); busy=false; current=null; shownGrade=null;
+    clearTimers(); busy=false; revealing=false; current=null; shownGrade=null; editing=false;
     result.classList.add("leaving");
     later(()=>{
-      result.hidden=true; result.classList.remove("leaving"); $("badge").hidden=true;
+      result.hidden=true; result.classList.remove("leaving"); confirm.hidden=true; $("badge").hidden=true; hideMsg();
       $("preview").classList.remove("show"); $("preview").src=""; $("placeholder").style.display=""; hint.textContent=S[lang].hint;
       if(scan.hidden){ scan.hidden=false; scan.classList.add("entering"); requestAnimationFrame(()=>requestAnimationFrame(()=>scan.classList.remove("entering"))); }
     },380);
   }
-
-  // ---------- wiring ----------
-  $("go").addEventListener("click", go);
   $("again").addEventListener("click", reset);
   $("cut").addEventListener("input", renderWhatIf);
-  $("lang-ar").onclick=()=>setLang("ar"); $("lang-en").onclick=()=>setLang("en"); $("ilang-ar").onclick=()=>setLang("ar"); $("ilang-en").onclick=()=>setLang("en");
-  $("look-verdict").onclick=()=>setLook("verdict"); $("look-label").onclick=()=>setLook("label"); $("look-scanner").onclick=()=>setLook("scanner");
+
   applyStrings(); playIntro();
-  // Any script error shows on screen, so a phone problem can be read back instead of guessed.
-  window.addEventListener("error", e => { try { hint.textContent = "script error: " + (e.message || e.type); } catch {} });
-  window.addEventListener("unhandledrejection", e => { try { hint.textContent = "error: " + String(e.reason && e.reason.message || e.reason).slice(0, 120); } catch {} });
+  window.addEventListener("error", e => { console.error(e.message); });
 </script>
 </body>
 </html>

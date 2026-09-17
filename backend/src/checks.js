@@ -71,12 +71,18 @@ export function route(reading, checks, { minConfidence = 0.6, attempt = 1 } = {}
   // The reader could not even name a category and found no nutrition value at all: a face, a shoe, a wall.
   const noValuesAtAll = ["energy_kJ","energy_kcal","fat_g","satfat_g","carb_g","sugar_g","fibre_g","protein_g","salt_g","sodium_mg"].every(k => !isNum(v[k]));
   if (reading.category === "unsure" && noValuesAtAll) return { action: "not_food", reasons: ["not_a_food_label", "no_values_found"] };
+  // Nothing numeric at all: the table is not in the photo. A second read of the same photo cannot find one, so say so at once.
+  if (noValuesAtAll) return { action: "retake", reasons: ["no_table_in_photo", ...reasons] };
   if (reasons.length === 0) return { action: "grade", reasons: [] };
-  // The table was read with confidence, but the label itself does not print what the grade needs: a fact about the label, not the photo.
-  const readSomething = ["energy_kJ", "energy_kcal", "fat_g", "carb_g", "protein_g"].some(k => isNum(v[k]));
+  // "The label is incomplete" is a claim about a manufacturer's packaging, so it needs evidence that a real table was read:
+  // the reader says a table is visible, or at least three values were read with high confidence. A front-of-pack calorie badge gives neither.
+  const confident = k => (c[k] ?? 0) >= 0.9;
+  const confidentValues = [["energy", isNum(v.energy_kJ) || isNum(v.energy_kcal)], ["fat", isNum(v.fat_g)], ["carb", isNum(v.carb_g)], ["protein", isNum(v.protein_g)], ["sugar", isNum(v.sugar_g)], ["satfat", isNum(v.satfat_g)], ["salt", isNum(v.salt_g) || isNum(v.sodium_mg)]]
+    .filter(([k, present]) => present && confident(k)).length;
+  const tableSeen = reading.nutrition_table_visible === true || confidentValues >= 3;
   const requiredMissing = missing.filter(k => k !== "energy");
   const onlyMissing = reasons.every(r => r.startsWith("missing_") || low.some(k => r === `low_confidence_${k}` && !isNum(v[k === "salt" ? "salt_g" : k === "energy" ? "energy_kJ" : k + "_g"])));
-  if (attempt >= 2 && readSomething && requiredMissing.length && onlyMissing && blocks.length === 0 && !basisProblem) {
+  if (attempt >= 2 && tableSeen && requiredMissing.length && onlyMissing && blocks.length === 0 && !basisProblem) {
     return { action: "incomplete_label", reasons, missing: requiredMissing };
   }
   return { action: attempt === 1 ? "second_pass" : "retake", reasons };

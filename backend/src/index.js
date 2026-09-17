@@ -92,7 +92,13 @@ async function handleScan(request, env) {
     // extraction, not reasoning: low effort keeps the first read fast; the second model backs it up
     read = await readOnce(env, image_base64, media_type, [primary, second], "", "low");
   } catch (err) {
-    return json({ error: "reader unavailable", detail: String(err.message || err).slice(0, 200) }, 502, headers);
+    // Every failed read leaves a log line, so a visitor's "could not read" can be traced to its cause afterwards.
+    const detail = String(err.message || err).slice(0, 300);
+    const declined = /\b403\b|forbidden|declined/i.test(detail);   // the provider refused this image, the service itself is up
+    await logScan(env.STORE, { scan_id, ts: new Date().toISOString(), device, decision: declined ? "reader_declined" : "reader_unavailable", error: detail, passes: [] },
+                  parseInt(env.LOG_TTL_SECONDS || "2592000", 10));
+    if (declined) return json({ scan_id, decision: { action: "retake", reasons: ["reader_declined"] }, passes: [{ error: detail }] }, 200, headers);
+    return json({ error: "reader unavailable", detail }, 502, headers);
   }
   let per100 = toPer100(read.reading.values, read.reading.basis, read.reading.serving_size);
   let checks = per100 ? consistencyChecks(per100) : [{ code: "basis_unclear", severity: "block", message: "could not put the values on a per-100 basis" }];
