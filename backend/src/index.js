@@ -34,16 +34,27 @@ function grade(reading, per100) {
   return { result, flags, input, reasons: result.ok ? reasons(result) : [] };
 }
 
-async function readOnce(env, imageBase64, mediaType, model, hint, effort) {
-  const timeoutMs = parseInt(env.READER_TIMEOUT_MS || "20000", 10);
-  try {
-    return await readWithClaude({ apiKey: env.ANTHROPIC_API_KEY, model, imageBase64, mediaType, timeoutMs, effort, hint });
-  } catch (err) {
-    if (!env.GOOGLE_API_KEY) throw err;
-    const fallback = await readWithGemini({ apiKey: env.GOOGLE_API_KEY, model: env.GEMINI_MODEL || "gemini-2.5-flash", imageBase64, mediaType, timeoutMs });
-    fallback.fallback_from = `${model}: ${err.message}`;
-    return fallback;
+// Try each Claude model in the chain, then the other provider. The first reader that answers wins.
+async function readOnce(env, imageBase64, mediaType, models, hint, effort) {
+  const timeoutMs = parseInt(env.READER_TIMEOUT_MS || "30000", 10);
+  const errors = [];
+  if (env.ANTHROPIC_API_KEY) {
+    for (const model of models) {
+      try {
+        const r = await readWithClaude({ apiKey: env.ANTHROPIC_API_KEY, model, imageBase64, mediaType, timeoutMs, effort, hint });
+        if (errors.length) r.fallback_from = errors.join(" | ");
+        return r;
+      } catch (err) { errors.push(`${model}: ${String(err.message || err).slice(0, 120)}`); }
+    }
   }
+  if (env.GOOGLE_API_KEY) {
+    try {
+      const r = await readWithGemini({ apiKey: env.GOOGLE_API_KEY, model: env.GEMINI_MODEL || "gemini-2.5-flash", imageBase64, mediaType, timeoutMs });
+      if (errors.length) r.fallback_from = errors.join(" | ");
+      return r;
+    } catch (err) { errors.push(`gemini: ${String(err.message || err).slice(0, 120)}`); }
+  }
+  throw new Error(errors.join(" | ") || "no reader configured");
 }
 
 async function handleScan(request, env) {
@@ -71,7 +82,8 @@ async function handleScan(request, env) {
 
   let attempt = 1, read, passes = [];
   try {
-    read = await readOnce(env, image_base64, media_type, primary, "", "medium");
+    // extraction, not reasoning: low effort keeps the first read fast; the second model backs it up
+    read = await readOnce(env, image_base64, media_type, [primary, second], "", "low");
   } catch (err) {
     return json({ error: "reader unavailable", detail: String(err.message || err).slice(0, 200) }, 502, headers);
   }
@@ -84,7 +96,7 @@ async function handleScan(request, env) {
     attempt = 2;
     const hint = `A first read was uncertain about: ${decision.reasons.join(", ")}. Read the table again with care and report null for anything not printed.`;
     try {
-      read = await readOnce(env, image_base64, media_type, second, hint, "high");
+      read = await readOnce(env, image_base64, media_type, [second], hint, "high");
     } catch (err) {
       passes.push({ model: second, error: String(err.message || err).slice(0, 200) });
       decision = { action: "retake", reasons: [...decision.reasons, "second_pass_failed"] };
@@ -127,7 +139,20 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors(env, request) });
-    if (request.method === "GET" && url.pathname === "/health") return json({ ok: true, rules: rules.source.slice(0, 60), kill_switch: env.KILL_SWITCH || "off" }, 200, cors(env, request));
+    if (request.method === "GET" && url.pathname === "/health") return json({
+      ok: true, rules: rules.source.slice(0, 60), kill_switch: env.KILL_SWITCH || "off",
+      readers: { anthropic: !!(env.ANTHROPIC_API_KEY && env.ANTHROPIC_API_KEY.length > 20), google: !!(env.GOOGLE_API_KEY && env.GOOGLE_API_KEY.length > 20) },
+    }, 200, cors(env, request));
+    if (request.method === "GET" && url.pathname === "/gemini-models") {
+      // Names only, so the fallback model is chosen from what the key can actually call, never from memory.
+      if (!env.GOOGLE_API_KEY) return json({ error: "no Google key configured" }, 503, cors(env, request));
+      const r = await fetch("https://generativelanguage.googleapis.com/v1beta/models?pageSize=200", { headers: { "x-goog-api-key": env.GOOGLE_API_KEY } });
+      if (!r.ok) return json({ error: `Google API HTTP ${r.status}` }, 502, cors(env, request));
+      const data = await r.json();
+      const models = (data.models || []).filter(m => (m.supportedGenerationMethods || []).includes("generateContent"))
+        .map(m => ({ name: m.name.replace("models/", ""), display: m.displayName, input_tokens: m.inputTokenLimit }));
+      return json({ configured: env.GEMINI_MODEL, available: models }, 200, cors(env, request));
+    }
     if (request.method === "POST" && url.pathname === "/scan") return handleScan(request, env);
     if (request.method === "POST" && url.pathname === "/correct") return handleCorrect(request, env);
     return json({ error: "not found" }, 404, cors(env, request));

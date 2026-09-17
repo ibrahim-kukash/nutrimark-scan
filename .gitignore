@@ -16,3 +16,4 @@ backend/.wrangler/
 backend/.dev.vars
 .env
 *.env
+backend/test/photos/

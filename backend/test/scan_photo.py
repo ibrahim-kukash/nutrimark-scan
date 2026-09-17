@@ -14,7 +14,9 @@ for path in sys.argv[2:]:
     media = mimetypes.guess_type(p.name)[0] or "image/jpeg"
     body = {"image_base64": base64.b64encode(p.read_bytes()).decode(), "media_type": media, "device_id": "test-script"}
     t0 = time.time()
-    req = urllib.request.Request(url, data=json.dumps(body).encode(), headers={"content-type": "application/json", "Origin": "http://127.0.0.1:8888"})
+    # A browser-like User-Agent: Cloudflare's edge refuses the bare Python signature with error 1010.
+    req = urllib.request.Request(url, data=json.dumps(body).encode(), headers={"content-type": "application/json", "Origin": "http://127.0.0.1:8888",
+                                  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) NutriMarkScanTest/0.1"})
     try:
         with urllib.request.urlopen(req, timeout=90) as r:
             data = json.load(r)
