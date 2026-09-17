@@ -51,13 +51,13 @@ export function route(reading, checks, { minConfidence = 0.6, attempt = 1 } = {}
   const c = reading.confidence || {};
   const req = requiredFor(reading.category);
   const need = ["energy", "salt", ...req.map(k => k.replace("_g", ""))];
-  const low = Object.entries(c).filter(([k, val]) => need.includes(k) && val < minConfidence).map(([k]) => k);
+  const low = need.filter(k => (c[k] ?? 0) < minConfidence);   // a confidence the reader did not give counts as low, never as high
   const v = reading.values || {};
   const missing = [];
   if (!isNum(v.energy_kJ) && !isNum(v.energy_kcal)) missing.push("energy");
   if (!isNum(v.salt_g) && !isNum(v.sodium_mg)) missing.push("salt");
   for (const k of req) if (!isNum(v[k])) missing.push(k);
-  const basisProblem = reading.basis === "unsure" || (reading.basis === "per_serving" && !isNum(reading.serving_size));
+  const basisProblem = reading.basis === "unsure" || (reading.basis === "per_serving" && !(isNum(reading.serving_size) && reading.serving_size > 0));
   const categoryProblem = reading.category === "unsure" || (c.category ?? 0) < minConfidence;
   const reasons = [
     ...blocks.map(b => b.code), ...low.map(k => `low_confidence_${k}`), ...missing.map(k => `missing_${k}`),

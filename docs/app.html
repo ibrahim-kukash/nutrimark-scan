@@ -325,7 +325,8 @@
       incomplete:m=>`قُرئ الملصق، لكن هذه القيم غير مذكورة فيه: ${m}. ولا يمكن حساب الدرجة بدون هذه القيم. تأكّد أنك صوّرت جدول القيم الغذائية كاملاً؛ فإن كان كاملاً، فالنقص في الملصق نفسه.`,
       missingNames:{sugar_g:"السكريات",satfat_g:"الدهون المشبعة",salt:"الملح",fat_g:"الدهون"},
       confirmTitle:"هذا ما قُرئ من الملصق", confirmSub:"تحقّق من الأرقام قبل حساب الدرجة. يمكنك تصحيح أي قيمة.", confirmGo:"احسب الدرجة", confirmEdit:"صحّح القيم", confirmSave:"احفظ واحسب",
-      kv:{product:"المنتج",category:"الفئة",energy:"السعرات الحرارية",sugar_g:"السكريات",satfat_g:"الدهون المشبعة",salt:"الملح",basis:"الأساس"},
+      kv:{product:"المنتج",category:"الفئة",energy:"السعرات الحرارية",fat_g:"الدهون",sugar_g:"السكريات",satfat_g:"الدهون المشبعة",salt:"الملح",basis:"الأساس"},
+      correctMissing:m=>`هذه الفئة تحتاج أيضاً إلى: ${m}. أدخل القيمة كما على الملصق ثم احفظ.`,
       basisNames:{per_100g:"لكل 100 غ",per_100ml:"لكل 100 مل",per_serving:"لكل حصة"},
       meaning:{A:"الأفضل تغذوياً",B:"جيد تغذوياً",C:"متوسط تغذوياً",D:"ضعيف تغذوياً",E:"الأدنى تغذوياً"},
       meaningSub:{A:"منخفض في السعرات والسكريات والملح",B:"منخفض عموماً في السكريات والملح",C:"كميات معتدلة من السكريات أو الملح",D:"مرتفع نسبياً في السكريات أو الدهون أو الملح",E:"مرتفع في السكريات والدهون المشبعة والملح"},
@@ -361,7 +362,8 @@
       incomplete:m=>`The label was read, but these values are not listed on it: ${m}. The grade cannot be calculated without those values. Check that you photographed the whole nutrition table; if you did, the gap is in the label itself.`,
       missingNames:{sugar_g:"sugars",satfat_g:"saturated fat",salt:"salt",fat_g:"fat"},
       confirmTitle:"This is what was read from the label", confirmSub:"Check the numbers before the grade is calculated. You can correct any value.", confirmGo:"Calculate the grade", confirmEdit:"Correct the values", confirmSave:"Save and calculate",
-      kv:{product:"Product",category:"Category",energy:"Calories",sugar_g:"Sugars",satfat_g:"Saturated fat",salt:"Salt",basis:"Basis"},
+      kv:{product:"Product",category:"Category",energy:"Calories",fat_g:"Fat",sugar_g:"Sugars",satfat_g:"Saturated fat",salt:"Salt",basis:"Basis"},
+      correctMissing:m=>`This category also needs: ${m}. Enter it as printed on the label, then save.`,
       basisNames:{per_100g:"per 100 g",per_100ml:"per 100 ml",per_serving:"per serving"},
       meaning:{A:"Nutritionally best",B:"Nutritionally good",C:"Nutritionally moderate",D:"Nutritionally poor",E:"Nutritionally lowest"},
       meaningSub:{A:"Low in calories, sugars and salt",B:"Generally low in sugars and salt",C:"Moderate sugars or salt",D:"Relatively high in sugars, fat or salt",E:"High in sugars, saturated fat and salt"},
@@ -396,7 +398,7 @@
     document.querySelectorAll(".lang-ar").forEach(b=>b.setAttribute("aria-pressed",lang==="ar")); document.querySelectorAll(".lang-en").forEach(b=>b.setAttribute("aria-pressed",lang==="en"));
     $("ilang-ar").setAttribute("aria-pressed",lang==="ar"); $("ilang-en").setAttribute("aria-pressed",lang==="en");
     if(!busy) hint.textContent=s.hint;
-    if(current && !confirm.hidden){ renderConfirm(); if($("confirmErr").dataset.key) confirmError($("confirmErr").dataset.key); }
+    if(current && !confirm.hidden){ renderConfirm(); const e=$("confirmErr"); if(e.dataset.key) confirmError(e.dataset.key, JSON.parse(e.dataset.missing||"[]")); }
     if(current && !result.hidden) renderResultText();
   }
   function setLang(l){ lang=l; applyStrings(); }
@@ -505,9 +507,9 @@
     const s=S[lang], d=current, rd=d.reading, v=d.per100||{};
     const unit=(rd.basis==="per_100ml"||rd.category==="beverages")?"ml":"g";
     const G=lang==="ar"?"غ":"g";
-    const rows=[["product",rd.product_name||s.cat[rd.category]||"–",null],["category",s.cat[rd.category]||rd.category,"category"],["energy",kcalOf(v),"energy",{unit:"kcal",ltr:true}],["sugar_g",v.sugar_g,"sugar_g",{unit:G}],["satfat_g",v.satfat_g,"satfat_g",{unit:G}],["salt",saltOf(v),"salt",{unit:G}],["basis",s.basisNames[rd.basis==="per_serving"?(unit==="ml"?"per_100ml":"per_100g"):rd.basis]||"–",null]];
+    const rows=[["product",rd.product_name||s.cat[rd.category]||"–",null],["category",s.cat[rd.category]||rd.category,"category"],["energy",kcalOf(v),"energy",{unit:"kcal",ltr:true}],["fat_g",v.fat_g,"fat_g",{unit:G}],["sugar_g",v.sugar_g,"sugar_g",{unit:G}],["satfat_g",v.satfat_g,"satfat_g",{unit:G}],["salt",saltOf(v),"salt",{unit:G}],["basis",s.basisNames[rd.basis==="per_serving"?(unit==="ml"?"per_100ml":"per_100g"):rd.basis]||"–",null]];
     // A re-render while the editor is open (a language tap) must keep what the visitor typed.
-    const typed={}; if(editing){ for(const f of ["category","energy","sugar_g","satfat_g","salt"]){ const el=$("ed-"+f); if(el) typed[f]=el.value; } }
+    const typed={}; if(editing){ for(const f of ["category","energy","fat_g","sugar_g","satfat_g","salt"]){ const el=$("ed-"+f); if(el) typed[f]=el.value; } }
     const selCat = typed.category ?? rd.category;
     $("kv").innerHTML = rows.map(([k,val,field,o])=>{
       let cell;
@@ -520,7 +522,12 @@
     $("confirmFlags").textContent = assumptions(d);
     $("confirmEdit").textContent = editing ? s.confirmSave : s.confirmEdit;
   }
-  function confirmError(key){ $("confirmErr").textContent = key ? S[lang][key] : ""; $("confirmErr").dataset.key = key || ""; }
+  function confirmError(key, missing){ // missing: engine field keys, translated on every render so a language tap keeps the message
+    const el=$("confirmErr"); el.dataset.key = key || ""; el.dataset.missing = JSON.stringify(missing||[]);
+    if(!key){ el.textContent=""; return; }
+    const v=S[lang][key];
+    el.textContent = typeof v==="function" ? v((missing||[]).map(k=>S[lang].missingNames[k]||S[lang].kv[k]||k).join(lang==="ar"?"، ":", ")) : v;
+  }
   $("confirmGo").addEventListener("click", ()=>{ if(!editing) showResult(true); });
   $("confirmBack").addEventListener("click", ()=>returnToScan(confirm));
   $("confirmEdit").addEventListener("click", async ()=>{
@@ -528,24 +535,26 @@
     const num=id=>{ const el=$(id); if(!el||el.value.trim()==="") return null; const n=parseFloat(el.value); return Number.isFinite(n)?n:null; };
     const rd=current.reading, v=current.per100||{};
     const values={ sugar_g:num("ed-sugar_g"), satfat_g:num("ed-satfat_g"), salt_g:num("ed-salt") };
-    const kcal=num("ed-energy");
+    const kcal=num("ed-energy"), fat=num("ed-fat_g");
+    const category=$("ed-category")?$("ed-category").value:rd.category;
     // An emptied field is not a correction: the visitor must say 0 to mean "not on the label".
     if(!isNum(kcal) || !isNum(values.sugar_g) || !isNum(values.satfat_g) || !isNum(values.salt_g)){ confirmError("correctEmpty"); return; }
+    if(isNum(fat)) values.fat_g=fat; else if(category==="fats"){ confirmError("correctMissing", ["fat_g"]); return; }   // fats and oils are graded on total fat too
     values.energy_kcal=kcal; values.energy_kJ=Math.round(kcal*4.2);
-    const category=$("ed-category")?$("ed-category").value:rd.category;
     const base={...rd, basis: rd.basis==="per_serving"?((rd.category==="beverages"||rd.basis==="per_100ml")?"per_100ml":"per_100g"):rd.basis, serving_size:null, values:{...v, sodium_mg:null}};
     $("confirmEdit").disabled=true; $("confirmEdit").textContent=S[lang].saving; confirmError("");
-    let outcome="correctFailed";
+    let outcome="correctFailed", missing=[];
     try{
       const r=await fetch(BACKEND+"/correct",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({scan_id:current.scan_id,device_id:deviceId,reading:base,category,values})});
       let data={}; try { data=await r.json(); } catch {}
       if(r.ok && data.grade && data.grade.ok){
         current={...current, reading:data.reading, per100:data.per100, grade:data.grade, reasons:data.reasons, flags:data.flags, engine_input:data.engine_input||engineInputFrom(data)};
         editing=false; outcome="";
-      } else if(r.status===400) outcome="correctRejected";
+      } else if(r.status===400 && Array.isArray(data.missing) && data.missing.length){ outcome="correctMissing"; missing=data.missing; }   // the engine needs a value this category grades on
+      else if(r.status===400) outcome="correctRejected";
     }catch(err){ console.warn("correct failed",err); }
     $("confirmEdit").disabled=false; $("confirmEdit").textContent=S[lang].confirmSave;
-    if(outcome){ confirmError(outcome); return; }   // the editor stays open with the typed values
+    if(outcome){ confirmError(outcome, missing); return; }   // the editor stays open with the typed values
     renderConfirm();
   });
   function engineInputFrom(data){ // the backend returns the engine input for scans; for corrections rebuild it from per100
