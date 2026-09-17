@@ -174,7 +174,7 @@ async function handleRequest(request, env) {
     const url = new URL(request.url);
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors(env, request) });
     if (request.method === "GET" && url.pathname === "/health") return json({
-      ok: true, rules: rules.source.slice(0, 60), kill_switch: env.KILL_SWITCH || "off",
+      ok: true, rules: "loaded", kill_switch: env.KILL_SWITCH || "off",
       readers: { anthropic: !!(env.ANTHROPIC_API_KEY && env.ANTHROPIC_API_KEY.length > 20), google: !!(env.GOOGLE_API_KEY && env.GOOGLE_API_KEY.length > 20) },
     }, 200, cors(env, request));
     if (request.method === "GET" && url.pathname === "/gemini-models") {

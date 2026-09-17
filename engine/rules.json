@@ -1,5 +1,5 @@
 {
-  "source": "Abu Dhabi QCC 'The Nutri-Mark calculation tool APRIL 2026.xlsx' (official), cross-read with ADG-044-2024 and the MoIAT draft UAE.S ....:2025. Transcribed 2026-09-14; general-foods tables verified by independent audit (research/CALC_REVIEW.md).",
+  "source": "Official Nutri-Mark calculation tool (April 2026), cross-read with guideline ADG-044-2024 and the MoIAT draft UAE.S ....:2025. Transcribed 2026-09-14; general-foods tables verified by independent audit (research/CALC_REVIEW.md).",
   "conventions": {
     "op_gt": "points = number of steps the value is strictly greater than (official '<=' chains)",
     "op_ge": "points = number of steps the value is greater than or equal to (official '<' chains)",
