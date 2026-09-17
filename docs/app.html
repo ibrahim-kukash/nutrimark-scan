@@ -421,7 +421,8 @@
 
   // ---------- guidance card ----------
   function openGuide(from){ swapTo(from, guide, from===scan); }
-  $("guideOpen").addEventListener("click", ()=>{ store.set("nm_guide_seen","1"); swapTo(guide, scan); later(()=>$("file").click(), 420); });
+  // The file input must be opened inside the tap itself: some phone browsers refuse a delayed .click().
+  $("guideOpen").addEventListener("click", ()=>{ store.set("nm_guide_seen","1"); $("file").click(); swapTo(guide, scan); });
   $("guideSkip").addEventListener("click", ()=>{ store.set("nm_guide_seen","1"); swapTo(guide, scan); });
 
   // ---------- camera ----------
