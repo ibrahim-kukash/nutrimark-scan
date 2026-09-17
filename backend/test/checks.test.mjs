@@ -113,6 +113,29 @@ test("a front-of-pack calorie badge never blames the label", () => {
   assert.notEqual(route(badge, [], { attempt: 2 }).action, "incomplete_label");
 });
 
+test("the reader's table flag alone never licenses an incomplete-label claim", () => {
+  const badge = { ...cereal, category: "general", basis: "per_serving", serving_size: 30, nutrition_table_visible: true,
+    values: { energy_kJ: null, energy_kcal: 150, fat_g: null, satfat_g: null, carb_g: null, sugar_g: null, fibre_g: null, protein_g: null, salt_g: null, sodium_mg: null },
+    confidence: { energy: 0.95, fat: 0, satfat: 0, carb: 0, sugar: 0, fibre: 0, protein: 0, salt: 0, category: 0.9, basis: 0.9 } };
+  assert.equal(route(badge, [], { attempt: 2 }).action, "retake");
+});
+
+test("the table flag plus two confident values is enough evidence of a real table", () => {
+  const partial = { ...cereal, category: "general", basis: "per_100g", nutrition_table_visible: true,
+    values: { energy_kJ: null, energy_kcal: 150, fat_g: 2, satfat_g: null, carb_g: null, sugar_g: null, fibre_g: null, protein_g: null, salt_g: null, sodium_mg: null },
+    confidence: { energy: 0.95, fat: 0.95, satfat: 0, carb: 0, sugar: 0, fibre: 0, protein: 0, salt: 0, category: 0.9, basis: 0.95 } };
+  const r = route(partial, [], { attempt: 2 });
+  assert.equal(r.action, "incomplete_label"); assert.deepEqual(r.missing.sort(), ["salt", "satfat_g", "sugar_g"]);
+});
+
+test("an unsure category with no values at all is not food, not a retake", () => {
+  const nothing = { ...cereal, category: "unsure",
+    values: { energy_kJ: null, energy_kcal: null, fat_g: null, satfat_g: null, carb_g: null, sugar_g: null, fibre_g: null, protein_g: null, salt_g: null, sodium_mg: null },
+    confidence: { energy: 0, fat: 0, satfat: 0, carb: 0, sugar: 0, fibre: 0, protein: 0, salt: 0, category: 0, basis: 0 } };
+  const r = route(nothing, [], { attempt: 1 });
+  assert.equal(r.action, "not_food"); assert.ok(r.reasons.includes("no_values_found"));
+});
+
 test("beverage with sweetener and plain water take the beverage paths", () => {
   const cola = { ...cereal, category: "beverages", basis: "per_100ml", values: { energy_kJ: 180, energy_kcal: 43, fat_g: 0, satfat_g: 0, carb_g: 10.6, sugar_g: 10.6, fibre_g: 0, protein_g: 0, salt_g: 0.01, sodium_mg: null }, sweeteners_present: true };
   const g1 = computeGrade(rules, toEngineInput(cola, cola.values).input);

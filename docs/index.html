@@ -22,7 +22,7 @@
     --cam:#14161F;
     --paper:#F3EFE5;
     --paper-ink:#23262F;
-    /* Official Nutri-Mark palette, QCC brand guideline V2 (Aug 2025) p4: Pantone 348C/360C/116C/715C/171C */
+    /* Official Nutri-Mark palette, brand guideline V2 (Aug 2025) p4: Pantone 348C/360C/116C/715C/171C */
     --A:#00833E; --B:#6DBE4B; --C:#FFCE02; --D:#F78D2B; --E:#F15E3E;
     --shadow:0 18px 50px rgba(58,63,87,.18);
     --page:#E9EAEE;
@@ -442,12 +442,12 @@
   const P = {energy:1407, kcal:335, fat:5.0, satfat:3.5, carb:72, sugar:15, fibre:4.5, protein:7.0, salt:0.5, fruit:0};   // 1407 = ROUND(335*4.2), as the official tool converts
 
   // ---------- points tables (general foods) ----------
-  // Source: MOIAT draft "Requirements for The Nutri-Mark on Front of Pack Labeling" (UAE.S ....:2025).
+  // Source: the federal draft regulation "Requirements for The Nutri-Mark on Front of Pack Labeling" (UAE.S ....:2025).
   // Negative points: Table 1 (p10-11). Positive points: Table 2 (p11).
   // Rule 5.3.2 (p11-12): N < 11 or cheese -> score = N - P; N >= 11 -> score = N - fibre - fruit/veg (protein excluded).
   // Cut-offs: Table 3 (p12): A <= 0, B 1-2, C 3-10, D 11-18, E >= 19.
   // Fats/oils (5.4), beverages (5.5) and red meat (Annex 1) have their own tables: see research/nutrimark_rules.json.
-  // Verified against the official QCC calculator (Apr 2026) by an independent audit, 14 Sep 2026: research/CALC_REVIEW.md
+  // Verified against the official calculator (Apr 2026) by an independent audit, 14 Sep 2026.
   const T = {
     energy:[335,670,1005,1340,1675,2010,2345,2680,3015,3350],
     satfat:[1,2,3,4,5,6,7,8,9,10],

@@ -94,7 +94,7 @@ async function handleScan(request, env) {
   } catch (err) {
     // Every failed read leaves a log line, so a visitor's "could not read" can be traced to its cause afterwards.
     const detail = String(err.message || err).slice(0, 300);
-    const declined = /\b403\b|forbidden|declined/i.test(detail);   // the provider refused this image, the service itself is up
+    const declined = detail.split(" | ").every(p => /\b403\b|forbidden|declined/i.test(p));   // every reader refused this image; the service itself is up
     await logScan(env.STORE, { scan_id, ts: new Date().toISOString(), device, decision: declined ? "reader_declined" : "reader_unavailable", error: detail, passes: [] },
                   parseInt(env.LOG_TTL_SECONDS || "2592000", 10));
     if (declined) return json({ scan_id, decision: { action: "retake", reasons: ["reader_declined"] }, passes: [{ error: detail }] }, 200, headers);
@@ -108,16 +108,22 @@ async function handleScan(request, env) {
   if (decision.action === "second_pass") {
     attempt = 2;
     const hint = `A first read was uncertain about: ${decision.reasons.join(", ")}. Read the table again with care and report null for anything not printed.`;
+    let secondRead = null;
     try {
-      read = await readOnce(env, image_base64, media_type, [second], hint, "high", 35000);
+      secondRead = await readOnce(env, image_base64, media_type, [second], hint, "high", 35000);
     } catch (err) {
       passes.push({ model: second, error: String(err.message || err).slice(0, 200) });
+    }
+    if (secondRead) {
+      read = secondRead;
+      per100 = toPer100(read.reading.values, read.reading.basis, read.reading.serving_size);
+      checks = per100 ? consistencyChecks(per100) : [{ code: "basis_unclear", severity: "block", message: "could not put the values on a per-100 basis" }];
+      decision = route(read.reading, checks, { attempt });
+      passes.push({ provider: read.provider, model: read.model, usage: read.usage, decision, fallback_from: read.fallback_from });
+    } else {
+      // The uncertain first read stands as uncertain: ask for a new photo, never re-judge it as if a second reader had agreed.
       decision = { action: "retake", reasons: [...decision.reasons, "second_pass_failed"] };
     }
-    per100 = toPer100(read.reading.values, read.reading.basis, read.reading.serving_size);
-    checks = per100 ? consistencyChecks(per100) : [{ code: "basis_unclear", severity: "block", message: "could not put the values on a per-100 basis" }];
-    decision = route(read.reading, checks, { attempt });
-    passes.push({ provider: read.provider, model: read.model, usage: read.usage, decision, fallback_from: read.fallback_from });
   }
 
   const out = { scan_id, reading: read.reading, per100, checks, decision, passes };
@@ -156,7 +162,7 @@ async function handleCorrect(request, env) {
   const g = grade(corrected, per100);
   if (!g.result.ok) return json({ error: g.result.error || "cannot grade", missing: g.result.missing }, 400, headers);
   await logCorrection(env.STORE, scan_id, { ts: new Date().toISOString(), category, values, grade: g.result.grade ?? null }, parseInt(env.LOG_TTL_SECONDS || "2592000", 10));
-  return json({ scan_id, reading: corrected, per100, grade: g.result, reasons: g.reasons, flags: g.flags, corrected: true }, 200, headers);
+  return json({ scan_id, reading: corrected, per100, grade: g.result, reasons: g.reasons, flags: g.flags, engine_input: g.input, corrected: true }, 200, headers);
 }
 
 export default {

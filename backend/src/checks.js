@@ -50,7 +50,7 @@ export function route(reading, checks, { minConfidence = 0.6, attempt = 1 } = {}
   const blocks = checks.filter(c => c.severity === "block");
   const c = reading.confidence || {};
   const req = requiredFor(reading.category);
-  const need = ["energy", "salt", ...req.map(k => k.replace("_g", "").replace("satfat", "satfat"))];
+  const need = ["energy", "salt", ...req.map(k => k.replace("_g", ""))];
   const low = Object.entries(c).filter(([k, val]) => need.includes(k) && val < minConfidence).map(([k]) => k);
   const v = reading.values || {};
   const missing = [];
@@ -64,7 +64,7 @@ export function route(reading, checks, { minConfidence = 0.6, attempt = 1 } = {}
     ...(basisProblem ? ["basis_unclear"] : []), ...(categoryProblem ? ["category_unclear"] : []),
   ];
   if (reading.category === "other") return { action: "not_food", reasons: ["not_a_food_label"] };
-  // Plain water carries no nutrition table and is grade A by definition (QCC Q&A). Grade it without values.
+  // Plain water carries no nutrition table and is grade A by definition (official Q&A). Grade it without values.
   if (reading.category === "beverages" && reading.plain_water === true && !isNum(v.sugar_g) && !isNum(v.energy_kJ) && !isNum(v.energy_kcal)) {
     return { action: "grade", reasons: ["plain_water"] };
   }
@@ -79,7 +79,8 @@ export function route(reading, checks, { minConfidence = 0.6, attempt = 1 } = {}
   const confident = k => (c[k] ?? 0) >= 0.9;
   const confidentValues = [["energy", isNum(v.energy_kJ) || isNum(v.energy_kcal)], ["fat", isNum(v.fat_g)], ["carb", isNum(v.carb_g)], ["protein", isNum(v.protein_g)], ["sugar", isNum(v.sugar_g)], ["satfat", isNum(v.satfat_g)], ["salt", isNum(v.salt_g) || isNum(v.sodium_mg)]]
     .filter(([k, present]) => present && confident(k)).length;
-  const tableSeen = reading.nutrition_table_visible === true || confidentValues >= 3;
+  // The reader's own flag is corroboration, never the whole claim: it needs at least two confident values beside it.
+  const tableSeen = confidentValues >= 3 || (reading.nutrition_table_visible === true && confidentValues >= 2);
   const requiredMissing = missing.filter(k => k !== "energy");
   const onlyMissing = reasons.every(r => r.startsWith("missing_") || low.some(k => r === `low_confidence_${k}` && !isNum(v[k === "salt" ? "salt_g" : k === "energy" ? "energy_kJ" : k + "_g"])));
   if (attempt >= 2 && tableSeen && requiredMissing.length && onlyMissing && blocks.length === 0 && !basisProblem) {

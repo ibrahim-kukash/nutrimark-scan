@@ -18,4 +18,6 @@ backend/.dev.vars
 *.env
 backend/test/photos/
 backend/test/*_REVIEW.md
+backend/test/*_AUDIT.md
 engine/test/AUDIT_*.md
+engine/test/OFFICIAL_*.md

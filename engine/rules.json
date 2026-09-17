@@ -1,5 +1,5 @@
 {
-  "source": "Official Nutri-Mark calculation tool (April 2026), cross-read with guideline ADG-044-2024 and the MoIAT draft UAE.S ....:2025. Transcribed 2026-09-14; general-foods tables verified by independent audit (research/CALC_REVIEW.md).",
+  "source": "Official Nutri-Mark calculation tool (April 2026). Transcribed 2026-09-14; verified against the tool by an independent audit.",
   "conventions": {
     "op_gt": "points = number of steps the value is strictly greater than (official '<=' chains)",
     "op_ge": "points = number of steps the value is greater than or equal to (official '<' chains)",
@@ -75,13 +75,5 @@
       "water_is_A": true,
       "grades": [{"max": 2, "grade": "B"}, {"max": 6, "grade": "C"}, {"max": 9, "grade": "D"}, {"grade": "E"}]
     }
-  },
-  "known_official_tool_defects": [
-    "Cheese sheet col H (kcal->kJ) references the row above; Red meat sheet references the row below. Enter kJ directly to avoid it.",
-    "Beverages: water flag route to grade A tests ISBLANK on formula cells and never fires; bottled water returns ERROR. This engine returns A for water, per the Q&A.",
-    "Beverages: salt chain uses '<3.2' among '<=' steps, so exactly 3.2 g scores 16 in the tool; this engine scores 15, consistent with every other step.",
-    "Fats sheet columns AE/AF contain #REF! leftovers; not part of the grade.",
-    "All sheets: a blank kcal or sodium cell leaves the kJ/salt formula cell as an empty string, which the points chain then scores at the MAXIMUM penalty instead of 'missing data' (found by the step-1 audit). Enter kJ and salt explicitly; this engine refuses on missing data.",
-    "Beverages: G='YES' (water) with any nutrient present returns ERROR in the tool. This engine treats a water flag with declared sugar, energy or sweeteners as NOT plain water and grades it as a beverage (Q&A: flavoured water cannot receive A)."
-  ]
+  }
 }

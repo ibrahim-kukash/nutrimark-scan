@@ -28,7 +28,7 @@
   .phone{width:390px;max-width:100%;height:780px;max-height:calc(100vh - 32px);background:var(--ground);color:var(--ink);border-radius:38px;box-shadow:var(--shadow);overflow:hidden;position:relative;transition:background .35s ease,color .35s ease}
   body.dev .phone{max-height:calc(100vh - 80px)}
   @media (max-width:480px){body{padding:8px}.phone{height:calc(100vh - 16px);height:calc(100dvh - 16px);max-height:none;border-radius:24px} body.dev .phone{height:calc(100dvh - 60px)}}
-  .screen{position:absolute;inset:0;display:flex;flex-direction:column;transition:opacity .45s ease,transform .45s ease}
+  .screen{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--ground);transition:opacity .45s ease,transform .45s ease}
   .screen[hidden]{display:none}
   .screen.leaving{opacity:0;transform:translateY(-24px);pointer-events:none}
   .screen.entering{opacity:0;transform:translateY(24px)}
@@ -269,9 +269,11 @@
     <p class="sub" data-t="confirmSub"></p>
     <dl class="kv" id="kv"></dl>
     <p class="flags" id="confirmFlags"></p>
+    <p class="flags" id="confirmErr" style="color:var(--E)" role="alert"></p>
     <div class="actions">
       <button class="primary" id="confirmGo" data-t="confirmGo"></button>
       <button class="secondary" id="confirmEdit" data-t="confirmEdit"></button>
+      <button class="linkbtn" id="confirmBack" data-t="confirmBack"></button>
     </div>
   </section>
 
@@ -314,9 +316,12 @@
       notFood:"لم نجد ملصقاً غذائياً في هذه الصورة. صوّر جدول القيم الغذائية خلف العبوة.",
       retakeMsg:"لم نتمكّن من قراءة الأرقام بوضوح. قرّب الكاميرا من الجدول، واجعله مستقيماً داخل الإطار، وتجنّب انعكاس الضوء.",
       noTable:"لم يظهر جدول القيم الغذائية في الصورة. اقلب العبوة إلى الجهة التي تحمل الجدول (الطاقة، الدهون، السكريات، الملح) وصوّر الجدول كاملاً.",
-      errMsg:"تعذّر الوصول إلى خدمة القراءة. تحقّق من الاتصال وحاول مرة أخرى.", timeoutMsg:"استغرقت القراءة وقتاً أطول من المعتاد. حاول مرة أخرى، أو قرّب الكاميرا من الجدول.",
+      errMsg:"تعذّر الوصول إلى خدمة القراءة. تحقّق من الاتصال وحاول مرة أخرى.", timeoutMsg:"استغرقت القراءة وقتاً أطول من المعتاد. حاول مرة أخرى.",
       badPhoto:"تعذّر فتح هذه الصورة. جرّب التقاطها مرة أخرى.",
       declinedMsg:"تعذّرت قراءة هذه الصورة. صوّر جدول القيم الغذائية بوضوح وحاول مرة أخرى.",
+      confirmBack:"صوّر منتجاً آخر", saving:"جارٍ الحفظ…", correctEmpty:"أدخل قيمة في كل خانة، أو 0 إن لم تكن مذكورة على الملصق.",
+      correctRejected:"لم تُقبل القيم لأنها تتعارض مع بعضها (مثلاً السكريات أكبر من الكربوهيدرات). راجعها وحاول مرة أخرى.", correctFailed:"تعذّر حفظ التصحيح. حاول مرة أخرى.",
+      bevPer100g:"الملصق يعلن القيم لكل 100 غ؛ حُسبت كأنها لكل 100 مل.", redMeatGeneral:"نسبة اللحم أقل من 20%؛ حُسب المنتج كغذاء عام.",
       incomplete:m=>`قُرئ الملصق، لكن هذه القيم غير مذكورة فيه: ${m}. ولا يمكن حساب الدرجة بدون هذه القيم. تأكّد أنك صوّرت جدول القيم الغذائية كاملاً؛ فإن كان كاملاً، فالنقص في الملصق نفسه.`,
       missingNames:{sugar_g:"السكريات",satfat_g:"الدهون المشبعة",salt:"الملح",fat_g:"الدهون"},
       confirmTitle:"هذا ما قُرئ من الملصق", confirmSub:"تحقّق من الأرقام قبل حساب الدرجة. يمكنك تصحيح أي قيمة.", confirmGo:"احسب الدرجة", confirmEdit:"صحّح القيم", confirmSave:"احفظ واحسب",
@@ -347,9 +352,12 @@
       notFood:"No food label in this photo. Photograph the nutrition table on the back of the pack.",
       retakeMsg:"We could not read the numbers clearly. Move closer to the table, keep it straight in the frame, and avoid glare.",
       noTable:"The nutrition table is not in this photo. Turn the pack over to the side that lists energy, fat, sugars and salt, and photograph the whole table.",
-      errMsg:"Could not reach the reading service. Check your connection and try again.", timeoutMsg:"Reading took longer than usual. Try again, or move closer to the table.",
+      errMsg:"Could not reach the reading service. Check your connection and try again.", timeoutMsg:"Reading took longer than usual. Try again.",
       badPhoto:"This photo could not be opened. Try taking it again.",
       declinedMsg:"This photo could not be read. Photograph the nutrition table clearly and try again.",
+      confirmBack:"Photograph another product", saving:"Saving…", correctEmpty:"Enter a value in every field, or 0 if it is not on the label.",
+      correctRejected:"The values were not accepted because they contradict each other (for example sugars above carbohydrate). Check them and try again.", correctFailed:"The correction could not be saved. Try again.",
+      bevPer100g:"The label declares values per 100 g; they were taken as per 100 ml.", redMeatGeneral:"Meat content is under 20%; graded as a general food.",
       incomplete:m=>`The label was read, but these values are not listed on it: ${m}. The grade cannot be calculated without those values. Check that you photographed the whole nutrition table; if you did, the gap is in the label itself.`,
       missingNames:{sugar_g:"sugars",satfat_g:"saturated fat",salt:"salt",fat_g:"fat"},
       confirmTitle:"This is what was read from the label", confirmSub:"Check the numbers before the grade is calculated. You can correct any value.", confirmGo:"Calculate the grade", confirmEdit:"Correct the values", confirmSave:"Save and calculate",
@@ -388,7 +396,7 @@
     document.querySelectorAll(".lang-ar").forEach(b=>b.setAttribute("aria-pressed",lang==="ar")); document.querySelectorAll(".lang-en").forEach(b=>b.setAttribute("aria-pressed",lang==="en"));
     $("ilang-ar").setAttribute("aria-pressed",lang==="ar"); $("ilang-en").setAttribute("aria-pressed",lang==="en");
     if(!busy) hint.textContent=s.hint;
-    if(current && !confirm.hidden) renderConfirm();
+    if(current && !confirm.hidden){ renderConfirm(); if($("confirmErr").dataset.key) confirmError($("confirmErr").dataset.key); }
     if(current && !result.hidden) renderResultText();
   }
   function setLang(l){ lang=l; applyStrings(); }
@@ -420,7 +428,7 @@
   $("go").addEventListener("click", ()=>{ const seen=store.get("nm_guide_seen")==="1"; swapTo(intro, seen?scan:guide); });
 
   // ---------- guidance card ----------
-  function openGuide(from){ swapTo(from, guide, from===scan); }
+  function openGuide(from){ swapTo(from, guide); }   // the camera screen sits later in the DOM, so it must be hidden or it paints over the card
   // The file input must be opened inside the tap itself: some phone browsers refuse a delayed .click().
   $("guideOpen").addEventListener("click", ()=>{ store.set("nm_guide_seen","1"); $("file").click(); swapTo(guide, scan); });
   $("guideSkip").addEventListener("click", ()=>{ store.set("nm_guide_seen","1"); swapTo(guide, scan); });
@@ -460,7 +468,7 @@
     photoDataUrl=dataUrl; $("preview").src=dataUrl; $("preview").classList.add("show"); $("placeholder").style.display="none";
     cam.classList.add("scanning"); hint.textContent=s.reading;
     const slow=setTimeout(()=>{ if(busy) hint.textContent=S[lang].readingSlow; }, 8000);
-    const ctrl=new AbortController(); const killer=setTimeout(()=>ctrl.abort(), 45000);
+    const ctrl=new AbortController(); const killer=setTimeout(()=>ctrl.abort(), 95000);   // longer than the Worker's whole reader budget, so a paid read is never thrown away
     let data, failure=null;
     try{
       const r=await fetch(BACKEND+"/scan",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({image_base64:base64,media_type:"image/jpeg",device_id:deviceId}),signal:ctrl.signal});
@@ -479,46 +487,66 @@
       else if(rs.includes("reader_declined")) showMsg(s.declinedMsg, s.retake, "camera");
       else showMsg(s.retakeMsg, s.retake, "camera"); return;
     }
-    current=data; busy=false; editing=false;
+    current={...data, servingConverted: !!(data.reading && data.reading.basis==="per_serving")}; busy=false; editing=false; confirmError("");
     if(rs.includes("plain_water")) showResult(); else { renderConfirm(); swapTo(scan, confirm); }
   }
 
   // ---------- confirm and correct ----------
   function kcalOf(v){ return isNum(v.energy_kcal)?v.energy_kcal:(isNum(v.energy_kJ)?Math.round(v.energy_kJ/4.184):null); }
   function saltOf(v){ return isNum(v.salt_g)?v.salt_g:(isNum(v.sodium_mg)?round1(v.sodium_mg/1000*2.5):null); }
+  function assumptions(d){ // everything the grade assumed, in the visitor's language
+    const s=S[lang], f=d.flags||[], out=[];
+    const zero=f.map(x=>s.flagNames[x]).filter(Boolean); if(zero.length) out.push(s.flagsLine(zero.join(lang==="ar"?" و":" and ")));
+    if(f.includes("beverage_declared_per_100g_taken_as_per_100ml")) out.push(s.bevPer100g);
+    if(f.includes("red_meat_below_20pct_graded_as_general")) out.push(s.redMeatGeneral);
+    return out.join(" ");
+  }
   function renderConfirm(){
     const s=S[lang], d=current, rd=d.reading, v=d.per100||{};
     const unit=(rd.basis==="per_100ml"||rd.category==="beverages")?"ml":"g";
     const G=lang==="ar"?"غ":"g";
     const rows=[["product",rd.product_name||s.cat[rd.category]||"–",null],["category",s.cat[rd.category]||rd.category,"category"],["energy",kcalOf(v),"energy",{unit:"kcal",ltr:true}],["sugar_g",v.sugar_g,"sugar_g",{unit:G}],["satfat_g",v.satfat_g,"satfat_g",{unit:G}],["salt",saltOf(v),"salt",{unit:G}],["basis",s.basisNames[rd.basis==="per_serving"?(unit==="ml"?"per_100ml":"per_100g"):rd.basis]||"–",null]];
+    // A re-render while the editor is open (a language tap) must keep what the visitor typed.
+    const typed={}; if(editing){ for(const f of ["category","energy","sugar_g","satfat_g","salt"]){ const el=$("ed-"+f); if(el) typed[f]=el.value; } }
+    const selCat = typed.category ?? rd.category;
     $("kv").innerHTML = rows.map(([k,val,field,o])=>{
       let cell;
       const wrap = x => (o&&o.ltr) ? `<span dir="ltr">${x}</span>` : x;   // "335 kcal" must not render as "kcal 335" in Arabic
-      if(editing && field==="category") cell=`<select id="ed-category">${Object.keys(s.cat).map(c=>`<option value="${c}" ${c===rd.category?"selected":""}>${s.cat[c]}</option>`).join("")}</select>`;
-      else if(editing && field && o) cell=wrap(`<input id="ed-${field}" type="number" inputmode="decimal" step="0.1" min="0" value="${isNum(val)?val:""}"> ${o.unit}`);
+      if(editing && field==="category") cell=`<select id="ed-category">${Object.keys(s.cat).map(c=>`<option value="${c}" ${c===selCat?"selected":""}>${s.cat[c]}</option>`).join("")}</select>`;
+      else if(editing && field && o) cell=wrap(`<input id="ed-${field}" type="number" inputmode="decimal" step="0.1" min="0" value="${typed[field]!==undefined?typed[field]:(isNum(val)?val:"")}"> ${o.unit}`);
       else cell = isNum(val)? wrap(`${val} ${o?o.unit:""}`) : (val||"–");
       return `<dt>${s.kv[k]}</dt><dd>${cell}</dd>`; }).join("");
     $("confirmGo").style.display = editing ? "none" : "";
-    const flags=(d.flags||[]).map(f=>s.flagNames[f]).filter(Boolean);
-    $("confirmFlags").textContent = flags.length ? s.flagsLine(flags.join(lang==="ar"?" و":" and ")) : "";
+    $("confirmFlags").textContent = assumptions(d);
     $("confirmEdit").textContent = editing ? s.confirmSave : s.confirmEdit;
   }
-  $("confirmGo").addEventListener("click", ()=>{ swapTo(confirm, result, true); showResult(true); });
+  function confirmError(key){ $("confirmErr").textContent = key ? S[lang][key] : ""; $("confirmErr").dataset.key = key || ""; }
+  $("confirmGo").addEventListener("click", ()=>{ if(!editing) showResult(true); });
+  $("confirmBack").addEventListener("click", ()=>returnToScan(confirm));
   $("confirmEdit").addEventListener("click", async ()=>{
-    if(!editing){ editing=true; renderConfirm(); return; }
-    const num=id=>{ const el=$(id); if(!el||el.value==="") return null; const n=parseFloat(el.value); return Number.isFinite(n)?n:null; };
+    if(!editing){ editing=true; confirmError(""); renderConfirm(); return; }
+    const num=id=>{ const el=$(id); if(!el||el.value.trim()==="") return null; const n=parseFloat(el.value); return Number.isFinite(n)?n:null; };
     const rd=current.reading, v=current.per100||{};
     const values={ sugar_g:num("ed-sugar_g"), satfat_g:num("ed-satfat_g"), salt_g:num("ed-salt") };
-    const kcal=num("ed-energy"); if(isNum(kcal)){ values.energy_kcal=kcal; values.energy_kJ=Math.round(kcal*4.2); }
+    const kcal=num("ed-energy");
+    // An emptied field is not a correction: the visitor must say 0 to mean "not on the label".
+    if(!isNum(kcal) || !isNum(values.sugar_g) || !isNum(values.satfat_g) || !isNum(values.salt_g)){ confirmError("correctEmpty"); return; }
+    values.energy_kcal=kcal; values.energy_kJ=Math.round(kcal*4.2);
     const category=$("ed-category")?$("ed-category").value:rd.category;
     const base={...rd, basis: rd.basis==="per_serving"?((rd.category==="beverages"||rd.basis==="per_100ml")?"per_100ml":"per_100g"):rd.basis, serving_size:null, values:{...v, sodium_mg:null}};
-    $("confirmEdit").disabled=true;
+    $("confirmEdit").disabled=true; $("confirmEdit").textContent=S[lang].saving; confirmError("");
+    let outcome="correctFailed";
     try{
-      const r=await fetch(BACKEND+"/correct",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({scan_id:current.scan_id,device_id:deviceId,reading:base,category,values:Object.fromEntries(Object.entries(values).filter(([,x])=>isNum(x)))})});
-      const data=await r.json();
-      if(r.ok && data.grade && data.grade.ok){ current={...current, reading:data.reading, per100:data.per100, grade:data.grade, reasons:data.reasons, flags:data.flags, engine_input:engineInputFrom(data)}; editing=false; }
+      const r=await fetch(BACKEND+"/correct",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({scan_id:current.scan_id,device_id:deviceId,reading:base,category,values})});
+      let data={}; try { data=await r.json(); } catch {}
+      if(r.ok && data.grade && data.grade.ok){
+        current={...current, reading:data.reading, per100:data.per100, grade:data.grade, reasons:data.reasons, flags:data.flags, engine_input:data.engine_input||engineInputFrom(data)};
+        editing=false; outcome="";
+      } else if(r.status===400) outcome="correctRejected";
     }catch(err){ console.warn("correct failed",err); }
-    $("confirmEdit").disabled=false; renderConfirm();
+    $("confirmEdit").disabled=false; $("confirmEdit").textContent=S[lang].confirmSave;
+    if(outcome){ confirmError(outcome); return; }   // the editor stays open with the typed values
+    renderConfirm();
   });
   function engineInputFrom(data){ // the backend returns the engine input for scans; for corrections rebuild it from per100
     const v=data.per100||{}, rd=data.reading;
@@ -532,24 +560,27 @@
     $("pname").textContent = rd.product_name || s.cat[rd.category] || "";
     $("pmeta").textContent = [rd.brand, s.cat[rd.category]].filter(Boolean).join(" · ");
     const unit=(rd.basis==="per_100ml"||rd.category==="beverages")?"ml":"g";
-    const serv=rd.basis==="per_serving", sod=!isNum((rd.values||{}).salt_g)&&isNum((rd.values||{}).sodium_mg);
+    const serv=d.servingConverted===true||rd.basis==="per_serving", sod=!isNum((rd.values||{}).salt_g)&&isNum((rd.values||{}).sodium_mg);
     $("per").textContent = isWater ? s.waterNote : s.per(unit, serv, sod);
-    const flags=(d.flags||[]).map(f=>s.flagNames[f]).filter(Boolean);
-    $("flagsline").textContent = flags.length ? s.flagsLine(flags.join(lang==="ar"?" و":" and ")) : (rd.category==="beverages"&&!isWater ? s.bevNoA : "");
+    $("flagsline").textContent = assumptions(d) || (rd.category==="beverages"&&!isWater ? s.bevNoA : "");
     const kcal=kcalOf(v);
     const rows=[["energy_kJ",kcal,"kcal",isNum(v.energy_kJ)?`${v.energy_kJ} kJ`:""],["sugar_g",v.sugar_g,"غ"],["satfat_g",v.satfat_g,"غ"],["salt_g",saltOf(v),"غ"],["fibre_g",v.fibre_g,"غ"],["protein_g",v.protein_g,"غ"],["fat_g",v.fat_g,"غ"],["carb_g",v.carb_g,"غ"]];
     const u=x=>lang==="ar"?x:(x==="غ"?"g":x);
-    $("values").innerHTML = rows.map(([k,val,un,sub])=>`<div><dt>${s.values[k]}</dt><dd>${isNum(val)?val:"–"}<small>${isNum(val)?u(un):""}</small>${sub?`<span class="kj" dir="ltr">${sub}</span>`:""}</dd></div>`).join("");
+    $("values").innerHTML = rows.map(([k,val,un,sub])=>{
+      const cell = `${isNum(val)?val:"–"}<small>${isNum(val)?u(un):""}</small>`;
+      const main = k==="energy_kJ" ? `<span dir="ltr">${cell}</span>` : cell;   // number + Latin unit stays one left-to-right run in Arabic
+      return `<div><dt>${s.values[k]}</dt><dd>${main}${sub?`<span class="kj" dir="ltr">${sub}</span>`:""}</dd></div>`; }).join("");
     renderMeaning(shownGrade||g.grade); renderReasons(g, isWater); renderWhatIf();
   }
   function renderMeaning(G){ const s=S[lang]; $("meaning").innerHTML=`${s.meaning[G]}<small>${s.meaningSub[G]}</small>`; }
   function renderReasons(g, isWater){
-    const s=S[lang]; const settled=!result.hidden&&!busy;
+    const s=S[lang]; const settled=!result.hidden&&(!revealing||reasonsShown);
     let items=[];
     if(isWater) items=[{k:"water",t:s.waterLine,pos:true}];
     else {
       items = engineReasons(g,3).map(k=>({k,t:s.reasons[k]||k,pos:false}));
-      const p=g.points||{}; for(const k of ["fibre_g","protein_g","fvl_pct"]) if((p[k]||0)>=2 && items.length<3) items.push({k,t:s.pos[k],pos:true});
+      const p=g.points||{}; const proteinExcluded=(g.notes||[]).some(n=>/protein excluded/i.test(n));   // the rules drop protein from the score for high-N products
+      for(const k of ["fibre_g","protein_g","fvl_pct"]) if((p[k]||0)>=2 && items.length<3 && !(k==="protein_g"&&proteinExcluded)) items.push({k,t:s.pos[k],pos:true});
       if(items.length===0) items=[{k:"none",t:s.noReasons,pos:true}];
     }
     $("reasons").innerHTML = items.map(it=>`<li class="${settled?"in":""} ${it.pos?"pos":""}" style="--gcol:${COL[g.grade]}"><i></i>${it.t}</li>`).join("");
@@ -558,6 +589,7 @@
     const base=current.engine_input; const removed=base.sugar_g*(cut/100);
     const out={...base, sugar_g: round1(base.sugar_g-removed)};
     if(isNum(base.energy_kJ)) out.energy_kJ=Math.max(0, Math.round(base.energy_kJ-17*removed));   // sugar carries 17 kJ per gram
+    else if(isNum(base.energy_kcal)) out.energy_kcal=Math.max(0, round1(base.energy_kcal-17*removed/4.2));   // kcal-only labels: the engine derives kJ from kcal
     return out;
   }
   function renderWhatIf(){
@@ -573,7 +605,9 @@
   function setBadge(g, animate){
     const b=$("badge");
     if(look!=="scanner"||result.hidden||!g){ b.hidden=true; b.classList.remove("in"); return; }
-    b.hidden=false; b.textContent=g; b.className="badge "+g; b.style.setProperty("--gcol",COL[g]); void b.offsetWidth; b.classList.add("in");
+    b.hidden=false; b.textContent=g; b.style.setProperty("--gcol",COL[g]);
+    if(!animate && b.classList.contains("in")){ b.className="badge "+g+" in"; return; }   // a plain update keeps the badge still
+    b.className="badge "+g; void b.offsetWidth; b.classList.add("in");
   }
   function setHit(g, animate){
     document.querySelectorAll("#band b").forEach(b=>{b.classList.toggle("hit",b.dataset.g===g); b.classList.toggle("dim",b.dataset.g!==g);});
@@ -592,40 +626,44 @@
     busy=false; hint.textContent=S[lang].hint;
   }
   result.addEventListener("click", e=>{ if(revealing && !e.target.closest("input,button")) finishReveal(); });
+  let reasonsShown=false;
   function showResult(fromConfirm=false){
-    const g=current.grade; shownGrade=null; $("cut").value=0; busy=true; revealing=true;
+    clearTimers();   // one owner of the timers: nothing scheduled by an earlier transition may run over the reveal
+    const g=current.grade; shownGrade=null; $("cut").value=0; busy=true; revealing=true; reasonsShown=false;
     $("thumb").src=photoDataUrl||"";
     document.querySelectorAll("#band b").forEach(b=>b.classList.remove("on","hit","dim"));
     const L=$("letter"); L.classList.remove("land","swap"); L.textContent=g.grade; L.style.color=COL[g.grade];
     ["meaning","values","whatif","foot","again"].forEach(id=>$(id).classList.remove("in"));
     renderResultText(); document.querySelectorAll("#reasons li").forEach(li=>li.classList.remove("in"));
     const overlay=look==="scanner";
-    if(!fromConfirm){ if(!overlay) scan.classList.add("leaving"); }
+    const from = fromConfirm ? confirm : scan;
+    if(!overlay || fromConfirm) from.classList.add("leaving");
     later(()=>{
-      if(!fromConfirm){ if(!overlay) scan.hidden=true; scan.classList.remove("leaving"); }
-      else { confirm.hidden=true; if(!overlay) scan.hidden=true; }
+      from.classList.remove("leaving");
+      if(fromConfirm) confirm.hidden=true;
+      if(overlay){ scan.hidden=false; scan.classList.remove("leaving"); } else scan.hidden=true;   // the scanner look shows the sheet over the photo
       result.hidden=false; result.classList.add("entering"); result.scrollTop=0;
       requestAnimationFrame(()=>requestAnimationFrame(()=>result.classList.remove("entering")));
       const cells=[...document.querySelectorAll("#band b")];
       cells.forEach((b,i)=>later(()=>b.classList.add("on"), 350+i*130));
       later(()=>{ setHit(g.grade,false); L.classList.add("land"); if(overlay) setBadge(g.grade,true); }, 350+5*130+150);
       later(()=>$("meaning").classList.add("in"), 1450);
-      later(()=>document.querySelectorAll("#reasons li").forEach((li,i)=>later(()=>li.classList.add("in"), i*140)), 1650);
+      later(()=>{ reasonsShown=true; document.querySelectorAll("#reasons li").forEach((li,i)=>later(()=>li.classList.add("in"), i*140)); }, 1650);
       later(()=>$("values").classList.add("in"), 2150);
       later(()=>$("whatif").classList.add("in"), 2400);
       later(()=>{$("foot").classList.add("in"); $("again").classList.add("in"); busy=false; revealing=false; hint.textContent=S[lang].hint;}, 2650);
-    }, fromConfirm?0:420);
+    }, 400);
   }
-  function reset(){
-    clearTimers(); busy=false; revealing=false; current=null; shownGrade=null; editing=false;
-    result.classList.add("leaving");
+  function returnToScan(from){ // from the result or the confirm card back to an empty camera screen
+    clearTimers(); busy=false; revealing=false; current=null; shownGrade=null; editing=false; confirmError("");
+    from.classList.add("leaving");
     later(()=>{
-      result.hidden=true; result.classList.remove("leaving"); confirm.hidden=true; $("badge").hidden=true; hideMsg();
+      from.hidden=true; from.classList.remove("leaving"); result.hidden=true; confirm.hidden=true; $("badge").hidden=true; hideMsg();
       $("preview").classList.remove("show"); $("preview").src=""; $("placeholder").style.display=""; hint.textContent=S[lang].hint;
       if(scan.hidden){ scan.hidden=false; scan.classList.add("entering"); requestAnimationFrame(()=>requestAnimationFrame(()=>scan.classList.remove("entering"))); }
     },380);
   }
-  $("again").addEventListener("click", reset);
+  $("again").addEventListener("click", ()=>returnToScan(result));
   $("cut").addEventListener("input", renderWhatIf);
 
   applyStrings(); playIntro();
