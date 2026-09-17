@@ -1,0 +1,19 @@
+{
+  "name": "nutrimark-backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Backend for the Nutri-Mark scan app: reads a label photo with an AI reader, checks the values, grades with the rules engine.",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.126.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "wrangler": "^4.133.0"
+  }
+}

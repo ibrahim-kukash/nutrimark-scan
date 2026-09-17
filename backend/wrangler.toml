@@ -1,0 +1,27 @@
+name = "nutrimark-backend"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+compatibility_flags = ["nodejs_compat"]
+
+# One KV namespace for rate limits, the daily cap, the result cache and the scan log.
+# The id is filled in after `wrangler kv namespace create STORE` (needs the account login).
+[[kv_namespaces]]
+binding = "STORE"
+id = "REPLACE_WITH_KV_ID"
+
+[vars]
+ALLOWED_ORIGINS = "https://ibrahim-kukash.github.io,http://127.0.0.1:8888,http://localhost:8888"
+PRIMARY_MODEL = "claude-sonnet-5"
+SECOND_PASS_MODEL = "claude-opus-5"
+GEMINI_MODEL = "gemini-2.5-flash"
+PER_DEVICE_PER_MINUTE = "6"
+PER_DEVICE_PER_DAY = "60"
+DAILY_SCAN_CAP = "5000"
+KILL_SWITCH = "off"
+READER_TIMEOUT_MS = "20000"
+CACHE_TTL_SECONDS = "604800"
+LOG_TTL_SECONDS = "2592000"
+
+# Secrets (never in this file): ANTHROPIC_API_KEY, GOOGLE_API_KEY
+#   npx wrangler secret put ANTHROPIC_API_KEY
+#   npx wrangler secret put GOOGLE_API_KEY

@@ -1,0 +1,8 @@
+{
+  "name": "nutrimark-engine",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Nutri-Mark grade engine: pure rules from rules.json, verified against the official QCC calculator.",
+  "main": "nutrimark.js"
+}

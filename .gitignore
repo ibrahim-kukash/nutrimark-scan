@@ -11,3 +11,8 @@ research/CALC_REVIEW.md
 _check.js
 _run.js
 engine/test/_official_work/
+backend/node_modules/
+backend/.wrangler/
+backend/.dev.vars
+.env
+*.env
