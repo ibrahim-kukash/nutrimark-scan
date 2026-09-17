@@ -1,0 +1,87 @@
+{
+  "source": "Abu Dhabi QCC 'The Nutri-Mark calculation tool APRIL 2026.xlsx' (official), cross-read with ADG-044-2024 and the MoIAT draft UAE.S ....:2025. Transcribed 2026-09-14; general-foods tables verified by independent audit (research/CALC_REVIEW.md).",
+  "conventions": {
+    "op_gt": "points = number of steps the value is strictly greater than (official '<=' chains)",
+    "op_ge": "points = number of steps the value is greater than or equal to (official '<' chains)",
+    "map": "optional: points = map[count]; without a map, points = count",
+    "kcal_to_kJ": "ROUND(kcal * 4.2, 0), as the official tool",
+    "sodium_to_salt": "sodium_mg / 1000 * 2.5, as the official tool",
+    "protein_round": "General foods ONLY: the official sheet applies ROUND(protein,2) before lookup (rows 3 down). Cheese, red meat, fats and beverages use the raw value. Set per category as 'protein_round'.",
+    "missing_data": "every required field must be present; the engine refuses with ok:false like the tool's 'missing data'. Callers decide defaults explicitly (e.g. fvl_pct: 0 when nothing qualifying is in the ingredients)."
+  },
+  "colours": {"A": "#00833E", "B": "#6DBE4B", "C": "#FFCE02", "D": "#F78D2B", "E": "#F15E3E"},
+  "shared": {
+    "energy_kJ":  {"op": "gt", "steps": [335, 670, 1005, 1340, 1675, 2010, 2345, 2680, 3015, 3350]},
+    "satfat_g":   {"op": "gt", "steps": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]},
+    "sugar_g":    {"op": "gt", "steps": [3.4, 6.8, 10, 14, 17, 20, 24, 27, 31, 34, 37, 41, 44, 48, 51]},
+    "salt_g":     {"op": "gt", "steps": [0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.4, 2.6, 2.8, 3.0, 3.2, 3.4, 3.6, 3.8, 4.0]},
+    "fibre_g":    {"op": "gt", "steps": [3.0, 4.1, 5.2, 6.3, 7.4]},
+    "protein_g":  {"op": "gt", "steps": [2.4, 4.8, 7.2, 9.6, 12, 14, 17]},
+    "fvl_pct":    {"op": "gt", "steps": [40, 60, 80], "map": [0, 1, 2, 5]}
+  },
+  "categories": {
+    "general": {
+      "label": "General foods",
+      "basis": "per 100 g",
+      "negative": ["energy_kJ", "satfat_g", "sugar_g", "salt_g"],
+      "positive": ["fibre_g", "protein_g", "fvl_pct"],
+      "protein_round": 2,
+      "score_rule": {"type": "protein_excluded_when_N_at_least", "N": 11},
+      "grades": [{"max": 0, "grade": "A"}, {"max": 2, "grade": "B"}, {"max": 10, "grade": "C"}, {"max": 18, "grade": "D"}, {"grade": "E"}]
+    },
+    "cheese": {
+      "label": "Cheese",
+      "basis": "per 100 g",
+      "negative": ["energy_kJ", "satfat_g", "sugar_g", "salt_g"],
+      "positive": ["fibre_g", "protein_g", "fvl_pct"],
+      "score_rule": {"type": "full_P_always"},
+      "grades": [{"max": 0, "grade": "A"}, {"max": 2, "grade": "B"}, {"max": 10, "grade": "C"}, {"max": 18, "grade": "D"}, {"grade": "E"}]
+    },
+    "red_meat": {
+      "label": "Red meat and products (red meat 20% or more)",
+      "basis": "per 100 g",
+      "negative": ["energy_kJ", "satfat_g", "sugar_g", "salt_g"],
+      "positive": ["fibre_g", "protein_g", "fvl_pct"],
+      "overrides": {"protein_g": {"op": "gt", "steps": [2.4, 4.8]}},
+      "score_rule": {"type": "protein_excluded_when_N_at_least", "N": 11},
+      "grades": [{"max": 0, "grade": "A"}, {"max": 2, "grade": "B"}, {"max": 10, "grade": "C"}, {"max": 18, "grade": "D"}, {"grade": "E"}]
+    },
+    "fats": {
+      "label": "Fats, oils, nuts and seeds",
+      "basis": "per 100 g",
+      "negative": ["energy_from_satfat_kJ", "satfat_ratio_pct", "sugar_g", "salt_g"],
+      "positive": ["fibre_g", "protein_g", "fvl_pct"],
+      "derived": {"energy_from_satfat_kJ": "satfat_g * 37", "satfat_ratio_pct": "satfat_g / fat_g * 100"},
+      "overrides": {
+        "energy_from_satfat_kJ": {"op": "gt", "steps": [120, 240, 360, 480, 600, 720, 840, 960, 1080, 1200]},
+        "satfat_ratio_pct":      {"op": "ge", "steps": [10, 16, 22, 28, 34, 40, 46, 52, 58, 64]}
+      },
+      "score_rule": {"type": "protein_excluded_when_N_at_least", "N": 7},
+      "grades": [{"max": -6, "grade": "A"}, {"max": 2, "grade": "B"}, {"max": 10, "grade": "C"}, {"max": 18, "grade": "D"}, {"grade": "E"}]
+    },
+    "beverages": {
+      "label": "Beverages",
+      "basis": "per 100 ml",
+      "negative": ["energy_kJ", "satfat_g", "sugar_g", "salt_g", "sweeteners"],
+      "positive": ["fibre_g", "protein_g", "fvl_pct"],
+      "overrides": {
+        "energy_kJ":  {"op": "gt", "steps": [30, 90, 150, 210, 240, 270, 300, 330, 360, 390]},
+        "sugar_g":    {"op": "gt", "steps": [0.5, 2, 3.5, 5, 6, 7, 8, 9, 10, 11]},
+        "sweeteners": {"flag_points": 4},
+        "protein_g":  {"op": "gt", "steps": [1.2, 1.5, 1.8, 2.1, 2.4, 2.7, 3.0]},
+        "fvl_pct":    {"op": "gt", "steps": [40, 60, 80], "map": [0, 2, 4, 6]}
+      },
+      "score_rule": {"type": "full_P_always"},
+      "water_is_A": true,
+      "grades": [{"max": 2, "grade": "B"}, {"max": 6, "grade": "C"}, {"max": 9, "grade": "D"}, {"grade": "E"}]
+    }
+  },
+  "known_official_tool_defects": [
+    "Cheese sheet col H (kcal->kJ) references the row above; Red meat sheet references the row below. Enter kJ directly to avoid it.",
+    "Beverages: water flag route to grade A tests ISBLANK on formula cells and never fires; bottled water returns ERROR. This engine returns A for water, per the Q&A.",
+    "Beverages: salt chain uses '<3.2' among '<=' steps, so exactly 3.2 g scores 16 in the tool; this engine scores 15, consistent with every other step.",
+    "Fats sheet columns AE/AF contain #REF! leftovers; not part of the grade.",
+    "All sheets: a blank kcal or sodium cell leaves the kJ/salt formula cell as an empty string, which the points chain then scores at the MAXIMUM penalty instead of 'missing data' (found by the step-1 audit). Enter kJ and salt explicitly; this engine refuses on missing data.",
+    "Beverages: G='YES' (water) with any nutrient present returns ERROR in the tool. This engine treats a water flag with declared sugar, energy or sweeteners as NOT plain water and grades it as a beverage (Q&A: flavoured water cannot receive A)."
+  ]
+}

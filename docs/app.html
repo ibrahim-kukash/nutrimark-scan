@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1F2233">
+<title>Nutri-Mark Scan</title>
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
+<style>
+  :root{
+    --ground:#F5F5F3; --surface:#FFFFFF; --ink:#3A3F57; --muted:#6E7389; --hair:#D9DBE3; --accent:#161CB7;
+    --cam:#14161F; --A:#00833E; --B:#6DBE4B; --C:#FFCE02; --D:#F78D2B; --E:#F15E3E;
+    --shadow:0 18px 50px rgba(58,63,87,.18); --page:#E9EAEE;
+    --font:"IBM Plex Sans Arabic","Segoe UI",Tahoma,Arial,sans-serif;
+  }
+  .phone[data-look="verdict"]{--ground:#1F2233;--surface:#2A2E42;--ink:#F5F5F3;--muted:#A0A6BE;--hair:#3A3F57;--accent:#8A90F5;--shadow:0 18px 50px rgba(0,0,0,.45)}
+  .phone[data-look="scanner"]{--ground:#0E1016;--surface:#1E2130;--ink:#F5F5F3;--muted:#A0A6BE;--hair:#3A3F57;--accent:#8A90F5;--shadow:0 18px 50px rgba(0,0,0,.5)}
+  html,body{height:100%}
+  body{margin:0;background:var(--page);color:var(--ink);font-family:var(--font);-webkit-font-smoothing:antialiased;padding:16px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:14px}
+  @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+  .bar{width:100%;max-width:390px;display:flex;justify-content:space-between;align-items:center;font-size:13px;color:#5A5F76}
+  .bar .grp{display:flex;gap:2px;border:1px solid #C9CBD5;border-radius:8px;padding:2px;background:#fff}
+  .bar button{font:inherit;font-size:13px;border:0;background:transparent;color:#5A5F76;padding:5px 10px;border-radius:6px;cursor:pointer}
+  .bar button[aria-pressed="true"]{background:#3A3F57;color:#fff}
+  .phone{width:390px;max-width:100%;height:780px;max-height:calc(100vh - 80px);background:var(--ground);color:var(--ink);border-radius:38px;box-shadow:var(--shadow);overflow:hidden;position:relative;transition:background .35s ease,color .35s ease}
+  @media (max-width:480px){body{padding:8px}.phone{height:calc(100vh - 60px);height:calc(100dvh - 60px);max-height:none;border-radius:24px}}
+  .screen{position:absolute;inset:0;display:flex;flex-direction:column;transition:opacity .45s ease,transform .45s ease}
+  .screen[hidden]{display:none}
+  .screen.leaving{opacity:0;transform:translateY(-24px);pointer-events:none}
+  .screen.entering{opacity:0;transform:translateY(24px)}
+  /* intro */
+  .intro{padding:36px 22px 26px;justify-content:flex-start;align-items:stretch;gap:10px}
+  .stage{flex:0 0 auto;height:280px;display:grid;align-items:end;justify-items:center;padding-bottom:6px;position:relative}
+  .intro-actions{margin-top:auto}
+  .cycle{position:absolute;inset:0;display:grid;place-items:center;font-size:220px;font-weight:700;line-height:1;letter-spacing:-.05em;opacity:0;transform:scale(.3)}
+  .cycle.pop{animation:pop .26s cubic-bezier(.2,.9,.3,1.2) forwards}
+  @keyframes pop{0%{transform:scale(.55);opacity:.15}100%{transform:scale(1);opacity:1}}
+  .cycle.out{animation:cycleOut .45s ease forwards}
+  @keyframes cycleOut{0%{transform:scale(1);opacity:1}100%{transform:scale(.12);opacity:0}}
+  .miniband{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;width:min(100%,300px);opacity:0}
+  .miniband.in{opacity:1}
+  .miniband b{height:54px;border-radius:10px;display:grid;place-items:center;font-weight:700;font-size:21px;color:#fff;transform:scale(0)}
+  .miniband.in b{animation:cell .42s cubic-bezier(.2,.9,.3,1.25) forwards;animation-delay:calc(var(--i)*80ms)}
+  @keyframes cell{to{transform:scale(1)}}
+  .miniband b[data-g="A"]{background:var(--A)} .miniband b[data-g="B"]{background:var(--B)} .miniband b[data-g="C"]{background:var(--C);color:#3A2A00} .miniband b[data-g="D"]{background:var(--D)} .miniband b[data-g="E"]{background:var(--E)}
+  .intro-copy{text-align:center;opacity:0;transform:translateY(12px);transition:opacity .5s ease,transform .5s ease}
+  .intro-copy.in{opacity:1;transform:none}
+  .intro-copy h1{font-size:30px;margin:0 0 6px;font-weight:700;letter-spacing:-.01em;text-wrap:balance}
+  .intro-copy p{margin:0 auto;max-width:30ch;color:var(--muted);font-size:15px;line-height:1.5;text-wrap:balance}
+  .intro-actions{display:flex;flex-direction:column;gap:12px;opacity:0;transform:translateY(12px);transition:opacity .5s ease,transform .5s ease}
+  .intro-actions.in{opacity:1;transform:none}
+  .langs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .langs button{font:inherit;font-size:15px;padding:12px;border-radius:12px;border:1px solid var(--hair);background:transparent;color:var(--ink);cursor:pointer}
+  .langs button[aria-pressed="true"]{background:var(--ink);color:var(--ground);border-color:var(--ink)}
+  .go{font:inherit;font-size:16px;font-weight:600;padding:16px;border-radius:14px;border:0;background:var(--ink);color:var(--ground);cursor:pointer}
+  /* header */
+  .head{display:flex;align-items:center;justify-content:space-between;padding:18px 22px 10px}
+  .brand{display:flex;align-items:center;font-weight:600;font-size:15px}
+  /* scan */
+  .cam{flex:1;margin:0 14px;border-radius:26px;background:var(--cam);position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
+  .cam::after{content:"";position:absolute;inset:0;background:radial-gradient(120% 90% at 50% 40%,transparent 55%,rgba(0,0,0,.55));pointer-events:none}
+  .frame{position:absolute;inset:34px 26px 128px;pointer-events:none;z-index:1}
+  .frame i{position:absolute;width:26px;height:26px;border:3px solid #fff;opacity:.9}
+  .frame i:nth-child(1){top:0;left:0;border-right:0;border-bottom:0;border-radius:8px 0 0 0}
+  .frame i:nth-child(2){top:0;right:0;border-left:0;border-bottom:0;border-radius:0 8px 0 0}
+  .frame i:nth-child(3){bottom:0;left:0;border-right:0;border-top:0;border-radius:0 0 0 8px}
+  .frame i:nth-child(4){bottom:0;right:0;border-left:0;border-top:0;border-radius:0 0 8px 0}
+  .sweep{position:absolute;left:26px;right:26px;top:34px;height:3px;background:linear-gradient(90deg,transparent,#fff,transparent);box-shadow:0 0 18px 4px rgba(255,255,255,.55);opacity:0;pointer-events:none;z-index:1}
+  .scanning .sweep{animation:sweep 1.4s cubic-bezier(.4,0,.2,1) infinite}
+  @keyframes sweep{0%{opacity:0;transform:translateY(0)}8%{opacity:1}92%{opacity:1}100%{opacity:0;transform:translateY(560px)}}
+  .preview{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .3s}
+  .preview.show{opacity:1}
+  .placeholder{color:#8A90A6;font-size:14px;text-align:center;padding:0 40px;line-height:1.5;z-index:1}
+  .camfoot{position:absolute;left:0;right:0;bottom:0;padding:14px 20px 18px;display:flex;flex-direction:column;align-items:center;gap:12px;color:#fff;background:linear-gradient(180deg,transparent,rgba(0,0,0,.6));z-index:2}
+  .hint{font-size:13.5px;opacity:.95;text-align:center;min-height:1.4em;line-height:1.4}
+  .shutter{width:72px;height:72px;border-radius:50%;border:4px solid #fff;background:transparent;display:grid;place-items:center;cursor:pointer;padding:0}
+  .shutter span{width:54px;height:54px;border-radius:50%;background:#fff;transition:transform .15s ease,background .2s}
+  .shutter:active span{transform:scale(.88)}
+  .scanning .shutter{pointer-events:none}
+  .scanning .shutter span{background:var(--accent);animation:pulse 1.1s ease-in-out infinite}
+  @keyframes pulse{50%{transform:scale(.82)}}
+  /* result */
+  .result{padding:0 22px 18px;overflow:auto;scrollbar-width:none}
+  .result::-webkit-scrollbar{display:none}
+  .product{display:flex;align-items:center;gap:14px;margin:2px 0 14px}
+  .thumb{width:64px;height:64px;border-radius:14px;flex:none;object-fit:cover;background:var(--hair)}
+  .product h2{margin:0;font-size:19px;font-weight:600;line-height:1.25;text-wrap:balance}
+  .product p{margin:2px 0 0;font-size:12.5px;color:var(--muted)}
+  .band{direction:ltr;display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin:0 0 6px}
+  .band b{height:44px;border-radius:9px;display:grid;place-items:center;font-weight:700;font-size:18px;color:#fff;background:var(--hair);opacity:.38;transform:scale(.94);transition:background .35s ease,opacity .35s ease,transform .35s ease,box-shadow .35s}
+  .band b.on{opacity:1;transform:scale(1)}
+  .band b[data-g="A"].on{background:var(--A)} .band b[data-g="B"].on{background:var(--B)} .band b[data-g="C"].on{background:var(--C);color:#3A2A00} .band b[data-g="D"].on{background:var(--D)} .band b[data-g="E"].on{background:var(--E)}
+  .band b.hit{transform:scale(1.14);box-shadow:0 8px 22px rgba(0,0,0,.28);z-index:1}
+  .band b.dim{opacity:.32;transform:scale(.92)}
+  .verdict{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:2px 0 2px;min-height:128px}
+  .letter{font-size:148px;line-height:.9;font-weight:700;letter-spacing:-.04em;transform:scale(.4);opacity:0;transform-origin:center;display:block}
+  .letter.land{animation:land .55s cubic-bezier(.2,.9,.3,1.25) forwards}
+  @keyframes land{0%{transform:scale(.4);opacity:0}70%{transform:scale(1.08);opacity:1}100%{transform:scale(1);opacity:1}}
+  .letter.swap{animation:swap .42s ease forwards}
+  @keyframes swap{0%{transform:scale(1);opacity:1}40%{transform:scale(.78);opacity:.2}100%{transform:scale(1);opacity:1}}
+  .meaning{flex:1;font-size:16px;font-weight:500;line-height:1.35;opacity:0;transform:translateY(8px);transition:opacity .4s,transform .4s}
+  .meaning.in{opacity:1;transform:none}
+  .meaning small{display:block;font-size:12.5px;color:var(--muted);font-weight:400;margin-top:4px}
+  .reasons{display:flex;flex-direction:column;gap:6px;margin:2px 0 12px;padding:0;list-style:none}
+  .reasons li{display:flex;align-items:center;gap:10px;font-size:14.5px;opacity:0;transform:translateX(var(--slide,-14px));transition:opacity .35s,transform .35s}
+  [dir="rtl"] .reasons li{--slide:14px}
+  .reasons li.in{opacity:1;transform:none}
+  .reasons li i{width:9px;height:9px;border-radius:50%;flex:none;background:var(--gcol,var(--D))}
+  .values{display:grid;grid-template-columns:repeat(4,1fr);gap:8px 6px;border-top:1px solid var(--hair);border-bottom:1px solid var(--hair);padding:10px 0;margin:0 0 12px;opacity:0;transition:opacity .45s}
+  .values.in{opacity:1}
+  .values div{display:flex;flex-direction:column;gap:2px}
+  .values dt{font-size:11px;color:var(--muted)} .values dd{margin:0;font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
+  .values dd small{font-size:10.5px;font-weight:400;color:var(--muted);margin-inline-start:2px}
+  .per{font-size:11px;color:var(--muted);margin:-8px 0 10px}
+  .whatif{opacity:0;transform:translateY(10px);transition:opacity .45s,transform .45s;background:var(--surface);border-radius:16px;padding:12px 14px 10px;margin:0 0 10px;box-shadow:0 1px 0 var(--hair)}
+  .whatif.in{opacity:1;transform:none}
+  .whatif h4{margin:0 0 8px;font-size:14px;font-weight:600}
+  .whatif .row{display:flex;align-items:center;gap:12px}
+  .whatif input[type=range]{flex:1;accent-color:var(--accent);height:28px;margin:0}
+  .whatif output{font-variant-numeric:tabular-nums;font-size:13px;min-width:5.5em;text-align:end;color:var(--muted)}
+  .whatif .becomes{margin-top:6px;font-size:13.5px;min-height:1.3em}
+  .whatif .becomes b{font-size:16px;padding:0 6px;border-radius:6px;color:#fff;background:var(--gcol,var(--D))}
+  .whatif .becomes b.C{color:#3A2A00}
+  .foot{font-size:11px;color:var(--muted);line-height:1.45;margin:0 0 10px;opacity:0;transition:opacity .45s}
+  .foot.in{opacity:1}
+  .again{width:100%;font:inherit;font-size:15px;font-weight:600;padding:14px;border-radius:14px;border:0;background:var(--ink);color:var(--ground);cursor:pointer;opacity:0;transition:opacity .45s}
+  .again.in{opacity:1}
+  /* scanner look */
+  .phone[data-look="scanner"] #scan .head{position:absolute;top:0;left:0;right:0;z-index:2;color:#fff;background:linear-gradient(180deg,rgba(0,0,0,.55),transparent)}
+  .phone[data-look="scanner"] .cam{position:absolute;inset:0;margin:0;border-radius:0}
+  .phone[data-look="scanner"] .frame{inset:84px 26px 150px}
+  .phone[data-look="scanner"] .sweep{top:84px}
+  .phone[data-look="scanner"] #result{top:auto;bottom:0;height:62%;border-radius:26px 26px 0 0;background:var(--surface);box-shadow:0 -14px 40px rgba(0,0,0,.5);z-index:3;padding-top:6px}
+  .phone[data-look="scanner"] #result::before{content:"";display:block;width:44px;height:5px;border-radius:3px;background:var(--hair);margin:4px auto 12px}
+  .phone[data-look="scanner"] #result .head,.phone[data-look="scanner"] #result .product{display:none}
+  .phone[data-look="scanner"] .verdict{min-height:96px;margin:4px 0 0}
+  .phone[data-look="scanner"] .letter{font-size:96px}
+  .badge{position:absolute;top:96px;right:30px;width:66px;height:66px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:36px;color:#fff;background:var(--gcol,#F78D2B);box-shadow:0 10px 26px rgba(0,0,0,.45),0 0 0 4px rgba(255,255,255,.92);transform:scale(0);opacity:0;z-index:2}
+  .badge.in{animation:land .55s cubic-bezier(.2,.9,.3,1.25) forwards}
+  .badge.C{color:#3A2A00}
+  .msg{position:absolute;left:22px;right:22px;top:40%;transform:translateY(-50%);background:rgba(20,22,31,.92);color:#fff;border-radius:16px;padding:16px 18px;font-size:14.5px;line-height:1.5;text-align:center;z-index:3;display:none}
+  .msg.show{display:block}
+  .msg button{margin-top:12px;font:inherit;font-size:14px;font-weight:600;padding:10px 16px;border-radius:10px;border:0;background:#fff;color:#14161F;cursor:pointer}
+  input[type=file]{display:none}
+</style>
+</head>
+<body>
+
+<div class="bar" id="bar">
+  <div class="grp" role="group" aria-label="Language">
+    <button id="lang-ar" aria-pressed="true">عربي</button>
+    <button id="lang-en" aria-pressed="false">EN</button>
+  </div>
+  <div class="grp" role="group" aria-label="Look">
+    <button id="look-verdict" aria-pressed="true">Verdict</button>
+    <button id="look-label" aria-pressed="false">Label</button>
+    <button id="look-scanner" aria-pressed="false">Scanner</button>
+  </div>
+</div>
+
+<div class="phone" id="phone" data-look="verdict" dir="rtl" lang="ar">
+
+  <section class="screen intro" id="intro">
+    <div class="stage">
+      <div class="cycle" id="cycle" aria-hidden="true">A</div>
+      <div class="miniband" id="miniband" dir="ltr" aria-label="Nutri-Mark A to E">
+        <b data-g="A" style="--i:0">A</b><b data-g="B" style="--i:1">B</b><b data-g="C" style="--i:2">C</b><b data-g="D" style="--i:3">D</b><b data-g="E" style="--i:4">E</b>
+      </div>
+    </div>
+    <div class="intro-copy" id="introCopy"><h1 data-t="introTitle"></h1><p data-t="introLine"></p></div>
+    <div class="intro-actions" id="introActions">
+      <div class="langs" role="group" aria-label="Language"><button id="ilang-ar" aria-pressed="true">عربي</button><button id="ilang-en" aria-pressed="false">English</button></div>
+      <button class="go" id="go" data-t="introGo"></button>
+    </div>
+  </section>
+
+  <section class="screen" id="scan" hidden>
+    <div class="head"><div class="brand"><span data-t="title"></span></div></div>
+    <div class="cam" id="cam">
+      <img class="preview" id="preview" alt="">
+      <div class="placeholder" id="placeholder" data-t="placeholder"></div>
+      <div class="frame"><i></i><i></i><i></i><i></i></div>
+      <div class="sweep"></div>
+      <div class="badge" id="badge" hidden></div>
+      <div class="msg" id="msg"><div id="msgText"></div><button id="msgBtn" data-t="retake"></button></div>
+      <div class="camfoot">
+        <div class="hint" id="hint"></div>
+        <button class="shutter" id="shutter" aria-label="Scan"><span></span></button>
+      </div>
+    </div>
+    <div style="height:14px"></div>
+    <input type="file" id="file" accept="image/*" capture="environment">
+  </section>
+
+  <section class="screen result" id="result" hidden>
+    <div class="head" style="padding-inline:0"><div class="brand"><span data-t="title"></span></div></div>
+    <div class="product"><img class="thumb" id="thumb" alt=""><div><h2 id="pname"></h2><p id="pmeta"></p></div></div>
+    <div class="band" id="band" aria-label="Nutri-Mark A to E"><b data-g="A">A</b><b data-g="B">B</b><b data-g="C">C</b><b data-g="D">D</b><b data-g="E">E</b></div>
+    <div class="verdict"><span class="letter" id="letter">D</span><div class="meaning" id="meaning"></div></div>
+    <ul class="reasons" id="reasons"></ul>
+    <dl class="values" id="values"></dl>
+    <div class="per" id="per"></div>
+    <div class="whatif" id="whatif">
+      <h4 data-t="whatif"></h4>
+      <div class="row"><input type="range" id="cut" min="0" max="40" step="5" value="0" aria-label="Sugar reduction"><output id="cutout"></output></div>
+      <div class="becomes" id="becomes"></div>
+    </div>
+    <p class="foot" id="foot" data-t="foot"></p>
+    <button class="again" id="again" data-t="again"></button>
+  </section>
+</div>
+
+<script type="module">
+  import { computeGrade, reasons as engineReasons } from "./engine/nutrimark.js";
+  const BACKEND = "https://nutrimark-backend.dcl-ibrahim.workers.dev";
+  const rules = await (await fetch("./engine/rules.json")).json();
+
+  const S = {
+    ar:{ title:"علامة التغذية", introTitle:"علامة التغذية", introLine:"صوّر جدول القيم الغذائية على أي منتج، واحصل على درجته من A إلى E خلال ثوانٍ", introGo:"امسح منتجاً",
+      placeholder:"اضغط الزر لفتح الكاميرا، ثم صوّر جدول القيم الغذائية بوضوح", hint:"وجّه الكاميرا نحو جدول القيم الغذائية ثم اضغط", reading:"جارٍ قراءة الملصق…", sending:"جارٍ الإرسال…",
+      retake:"صوّر مرة أخرى", notFood:"هذه ليست صورة ملصق غذائي. صوّر جدول القيم الغذائية.", retakeMsg:"لم تُقرأ الصورة بوضوح كافٍ. قرّب الكاميرا من الجدول وتجنّب الانعكاس.", errMsg:"تعذّر الاتصال بخدمة القراءة. حاول مرة أخرى.",
+      meaning:{A:"الأفضل تغذوياً",B:"جيد",C:"متوسط",D:"منخفض",E:"الأدنى تغذوياً"},
+      meaningSub:{A:"منخفض السعرات والسكر والملح",B:"منخفض عموماً في السكر والملح",C:"كميات معتدلة من السكر أو الملح",D:"مرتفع نسبياً في السكر أو الدهون أو الملح",E:"مرتفع في السكر والدهون المشبعة والملح"},
+      reasons:{sugar_g:"سكريات مرتفعة",energy_kJ:"سعرات مرتفعة",satfat_g:"دهون مشبعة مرتفعة",salt_g:"ملح مرتفع",sweeteners:"يحتوي على محليات",energy_from_satfat_kJ:"دهون مشبعة مرتفعة",satfat_ratio_pct:"نسبة عالية من الدهون المشبعة"},
+      values:{energy_kJ:"الطاقة",satfat_g:"دهون مشبعة",sugar_g:"سكريات",salt_g:"ملح",fibre_g:"ألياف",protein_g:"بروتين",fat_g:"دهون",carb_g:"كربوهيدرات"},
+      cat:{general:"غذاء عام",cheese:"جبن",red_meat:"لحوم حمراء",fats:"دهون وزيوت",beverages:"مشروب"},
+      per:b=>b==="per_100ml"?"القيم لكل 100 مل كما وردت على الملصق":"القيم لكل 100 غ كما وردت على الملصق",
+      whatif:"ماذا لو خفّض المصنّع السكر؟", cut:p=>`سكر أقل بنسبة ${p}%`, becomes:(g,same)=> same?`تبقى الدرجة <b class="${g}">${g}</b>`:`تصبح الدرجة <b class="${g}">${g}</b>`,
+      foot:"تقدير من بيانات الملصق وفق خوارزمية علامة التغذية المنشورة من مجلس أبوظبي للجودة والمطابقة ومسودة اللائحة الفنية الإماراتية. ليس شهادة رسمية.", again:"امسح منتجاً آخر" },
+    en:{ title:"Nutri-Mark", introTitle:"Nutri-Mark", introLine:"Photograph the nutrition table on any product and get its A to E grade in seconds", introGo:"Scan a product",
+      placeholder:"Tap the button to open the camera, then photograph the nutrition table clearly", hint:"Point at the nutrition table, then tap", reading:"Reading the label…", sending:"Sending…",
+      retake:"Take another photo", notFood:"That is not a food label. Photograph the nutrition table.", retakeMsg:"The label could not be read clearly. Move closer to the table and avoid glare.", errMsg:"Could not reach the reading service. Try again.",
+      meaning:{A:"Best",B:"Good",C:"Moderate",D:"Low",E:"Lowest"},
+      meaningSub:{A:"Low in energy, sugar and salt",B:"Generally low in sugar and salt",C:"Moderate sugar or salt",D:"Relatively high in sugar, fat or salt",E:"High in sugar, saturated fat and salt"},
+      reasons:{sugar_g:"High in sugar",energy_kJ:"High in energy",satfat_g:"High in saturated fat",salt_g:"High in salt",sweeteners:"Contains sweeteners",energy_from_satfat_kJ:"High in saturated fat",satfat_ratio_pct:"High share of saturated fat"},
+      values:{energy_kJ:"Energy",satfat_g:"Saturates",sugar_g:"Sugars",salt_g:"Salt",fibre_g:"Fibre",protein_g:"Protein",fat_g:"Fat",carb_g:"Carbohydrate"},
+      cat:{general:"General food",cheese:"Cheese",red_meat:"Red meat",fats:"Fats and oils",beverages:"Beverage"},
+      per:b=>b==="per_100ml"?"Values per 100 ml as printed on the label":"Values per 100 g as printed on the label",
+      whatif:"What if the maker cut the sugar?", cut:p=>`${p}% less sugar`, becomes:(g,same)=> same?`Grade stays <b class="${g}">${g}</b>`:`Grade becomes <b class="${g}">${g}</b>`,
+      foot:"Estimated from the label with the Nutri-Mark algorithm published by the Abu Dhabi Quality and Conformity Council and the UAE draft technical regulation. Not an official certificate.", again:"Scan another product" }
+  };
+  const COL={A:"var(--A)",B:"var(--B)",C:"var(--C)",D:"var(--D)",E:"var(--E)"};
+  const $=id=>document.getElementById(id);
+  const phone=$("phone"), intro=$("intro"), scan=$("scan"), result=$("result"), cam=$("cam"), hint=$("hint");
+  let lang="ar", look="verdict", busy=false, timers=[], current=null, shownGrade=null, photoDataUrl=null;
+  const later=(fn,ms)=>timers.push(setTimeout(fn,ms)); const clearTimers=()=>{timers.forEach(clearTimeout);timers=[]};
+  const deviceId=(()=>{try{let d=localStorage.getItem("nm_device"); if(!d){d=crypto.randomUUID(); localStorage.setItem("nm_device",d);} return d;}catch{return "anon-"+Math.random().toString(36).slice(2);}})();
+
+  function applyStrings(){
+    const s=S[lang];
+    document.querySelectorAll("[data-t]").forEach(el=>{const k=el.dataset.t; if(typeof s[k]==="string") el.textContent=s[k];});
+    phone.dir=lang==="ar"?"rtl":"ltr"; phone.lang=lang; document.documentElement.dir=phone.dir; document.documentElement.lang=lang;
+    if(!busy) hint.textContent=s.hint;
+    if(current) renderResultText();
+  }
+  function setLang(l){ lang=l; [["lang-ar","ar"],["lang-en","en"],["ilang-ar","ar"],["ilang-en","en"]].forEach(([id,v])=>$(id).setAttribute("aria-pressed", l===v)); applyStrings(); }
+  function setLook(k){ look=k; phone.dataset.look=k; ["verdict","label","scanner"].forEach(n=>$("look-"+n).setAttribute("aria-pressed", k===n));
+    if(!result.hidden){ scan.hidden=(k!=="scanner"); setBadge(shownGrade,false); } }
+
+  // ---------- intro ----------
+  function playIntro(){
+    const cyc=$("cycle"), mb=$("miniband");
+    if(matchMedia("(prefers-reduced-motion: reduce)").matches){ cyc.style.display="none"; mb.classList.add("in"); $("introCopy").classList.add("in"); $("introActions").classList.add("in"); return; }
+    const GR=["A","B","C","D","E"], step=280, t0=250;
+    GR.forEach((g,i)=> later(()=>{ cyc.textContent=g; cyc.style.color=COL[g]; cyc.classList.remove("pop"); void cyc.offsetWidth; cyc.classList.add("pop"); }, t0+i*step));
+    const tEnd=t0+GR.length*step;
+    later(()=>cyc.classList.add("out"), tEnd+120); later(()=>mb.classList.add("in"), tEnd+330);
+    later(()=>$("introCopy").classList.add("in"), tEnd+900); later(()=>$("introActions").classList.add("in"), tEnd+1150);
+  }
+  function go(){ clearTimers(); $("introActions").classList.add("in"); $("introCopy").classList.add("in"); intro.classList.add("leaving");
+    later(()=>{ intro.hidden=true; intro.classList.remove("leaving"); scan.hidden=false; scan.classList.add("entering");
+      requestAnimationFrame(()=>requestAnimationFrame(()=>scan.classList.remove("entering"))); },380); }
+
+  // ---------- camera ----------
+  $("shutter").addEventListener("click", ()=>{ if(!busy) $("file").click(); });
+  $("file").addEventListener("change", async e=>{ const f=e.target.files && e.target.files[0]; e.target.value=""; if(f) await handlePhoto(f); });
+
+  async function shrink(file, max=1280){
+    const bmp = await createImageBitmap(file).catch(()=>null);
+    const img = bmp || await new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=URL.createObjectURL(file); });
+    const w=img.width, h=img.height, f=Math.min(1, max/Math.max(w,h));
+    const c=document.createElement("canvas"); c.width=Math.round(w*f); c.height=Math.round(h*f);
+    c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+    const dataUrl=c.toDataURL("image/jpeg",0.85);
+    return { dataUrl, base64:dataUrl.split(",")[1] };
+  }
+  function showMsg(text, withBtn=true){ $("msgText").textContent=text; $("msgBtn").style.display=withBtn?"":"none"; $("msg").classList.add("show"); }
+  $("msgBtn").addEventListener("click", ()=>{ $("msg").classList.remove("show"); $("file").click(); });
+
+  async function handlePhoto(file){
+    busy=true; clearTimers(); $("msg").classList.remove("show");
+    const s=S[lang];
+    hint.textContent=s.sending;
+    const { dataUrl, base64 } = await shrink(file);
+    photoDataUrl=dataUrl; $("preview").src=dataUrl; $("preview").classList.add("show"); $("placeholder").style.display="none";
+    cam.classList.add("scanning"); hint.textContent=s.reading;
+    let data;
+    try{
+      const r=await fetch(BACKEND+"/scan",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({image_base64:base64,media_type:"image/jpeg",device_id:deviceId})});
+      data=await r.json();
+      if(!r.ok) throw new Error(data.error||("HTTP "+r.status));
+    }catch(err){
+      cam.classList.remove("scanning"); busy=false; hint.textContent=s.hint; showMsg(s.errMsg+" ("+String(err.message).slice(0,80)+")"); return;
+    }
+    cam.classList.remove("scanning");
+    const act=data.decision && data.decision.action;
+    if(act==="not_food"){ busy=false; hint.textContent=s.hint; showMsg(s.notFood); return; }
+    if(act!=="grade" || !data.grade || !data.grade.ok){ busy=false; hint.textContent=s.hint; showMsg(s.retakeMsg); return; }
+    current=data; showResult();
+  }
+
+  // ---------- result ----------
+  function renderResultText(){
+    const s=S[lang], d=current, rd=d.reading, g=d.grade;
+    $("pname").textContent = rd.product_name || s.cat[rd.category] || "";
+    $("pmeta").textContent = [rd.brand, s.cat[rd.category]].filter(Boolean).join(" · ");
+    $("per").textContent = s.per(rd.basis==="per_100ml"||rd.category==="beverages"?"per_100ml":"per_100g");
+    const v=d.per100||{};
+    const rows=[["energy_kJ",v.energy_kJ,"kJ"],["sugar_g",v.sugar_g,"g"],["satfat_g",v.satfat_g,"g"],["salt_g",isNum(v.salt_g)?v.salt_g:(isNum(v.sodium_mg)?round1(v.sodium_mg/1000*2.5):null),"g"],["fibre_g",v.fibre_g,"g"],["protein_g",v.protein_g,"g"],["fat_g",v.fat_g,"g"],["carb_g",v.carb_g,"g"]];
+    $("values").innerHTML = rows.map(([k,val,u])=>`<div><dt>${s.values[k]}</dt><dd>${isNum(val)?val:"–"}<small>${isNum(val)?u:""}</small></dd></div>`).join("");
+    renderMeaning(shownGrade||g.grade); renderReasons(g); renderWhatIf();
+  }
+  const isNum=x=>typeof x==="number"&&Number.isFinite(x); const round1=x=>Math.round(x*10)/10;
+  function renderMeaning(G){ const s=S[lang]; $("meaning").innerHTML=`${s.meaning[G]}<small>${s.meaningSub[G]}</small>`; }
+  function renderReasons(g){
+    const s=S[lang].reasons; const keys=engineReasons(g,3);
+    const settled=!result.hidden&&!busy;
+    $("reasons").innerHTML = keys.map(k=>`<li class="${settled?"in":""}" style="--gcol:${COL[g.grade]}"><i></i>${s[k]||k}</li>`).join("");
+  }
+  function whatIfInput(cut){ const base=current.engine_input; return {...base, sugar_g: round1(base.sugar_g*(1-cut/100))}; }
+  function renderWhatIf(){
+    const s=S[lang]; const cut=+$("cut").value; $("cutout").textContent=s.cut(cut);
+    const g2=computeGrade(rules, whatIfInput(cut)); const g=g2.ok?g2.grade:current.grade.grade;
+    $("becomes").innerHTML=s.becomes(g, g===current.grade.grade); $("becomes").style.setProperty("--gcol",COL[g]);
+    setHit(g, g!==shownGrade);
+  }
+  function setBadge(g, animate){
+    const b=$("badge");
+    if(look!=="scanner"||result.hidden||!g){ b.hidden=true; b.classList.remove("in"); return; }
+    b.hidden=false; b.textContent=g; b.className="badge "+g; b.style.setProperty("--gcol",COL[g]); void b.offsetWidth; b.classList.add("in");
+  }
+  function setHit(g, animate){
+    document.querySelectorAll("#band b").forEach(b=>{b.classList.toggle("hit",b.dataset.g===g); b.classList.toggle("dim",b.dataset.g!==g);});
+    const L=$("letter");
+    if(animate&&shownGrade){ L.classList.remove("swap"); void L.offsetWidth; L.classList.add("swap"); later(()=>{L.textContent=g; L.style.color=COL[g];},170); }
+    else { L.textContent=g; L.style.color=COL[g]; }
+    if(!result.hidden) setBadge(g, animate);
+    shownGrade=g; renderMeaning(g);
+  }
+  function showResult(){
+    const g=current.grade; shownGrade=null; $("cut").value=0;
+    $("thumb").src=photoDataUrl||"";
+    document.querySelectorAll("#band b").forEach(b=>b.classList.remove("on","hit","dim"));
+    const L=$("letter"); L.classList.remove("land","swap"); L.textContent=g.grade; L.style.color=COL[g.grade];
+    ["meaning","values","whatif","foot","again"].forEach(id=>$(id).classList.remove("in"));
+    renderResultText(); document.querySelectorAll("#reasons li").forEach(li=>li.classList.remove("in"));
+    const overlay=look==="scanner";
+    if(!overlay) scan.classList.add("leaving");
+    later(()=>{
+      if(!overlay) scan.hidden=true; scan.classList.remove("leaving");
+      result.hidden=false; result.classList.add("entering"); result.scrollTop=0;
+      requestAnimationFrame(()=>requestAnimationFrame(()=>result.classList.remove("entering")));
+      const cells=[...document.querySelectorAll("#band b")];
+      cells.forEach((b,i)=>later(()=>b.classList.add("on"), 350+i*130));
+      later(()=>{ setHit(g.grade,false); L.classList.add("land"); if(overlay) setBadge(g.grade,true); }, 350+5*130+150);
+      later(()=>$("meaning").classList.add("in"), 1450);
+      later(()=>document.querySelectorAll("#reasons li").forEach((li,i)=>later(()=>li.classList.add("in"), i*140)), 1650);
+      later(()=>$("values").classList.add("in"), 2150);
+      later(()=>$("whatif").classList.add("in"), 2400);
+      later(()=>{$("foot").classList.add("in"); $("again").classList.add("in"); busy=false; hint.textContent=S[lang].hint;}, 2650);
+    }, 420);
+  }
+  function reset(){
+    clearTimers(); busy=false; current=null; shownGrade=null;
+    result.classList.add("leaving");
+    later(()=>{
+      result.hidden=true; result.classList.remove("leaving"); $("badge").hidden=true;
+      $("preview").classList.remove("show"); $("preview").src=""; $("placeholder").style.display=""; hint.textContent=S[lang].hint;
+      if(scan.hidden){ scan.hidden=false; scan.classList.add("entering"); requestAnimationFrame(()=>requestAnimationFrame(()=>scan.classList.remove("entering"))); }
+    },380);
+  }
+
+  // ---------- wiring ----------
+  $("go").addEventListener("click", go);
+  $("again").addEventListener("click", reset);
+  $("cut").addEventListener("input", renderWhatIf);
+  $("lang-ar").onclick=()=>setLang("ar"); $("lang-en").onclick=()=>setLang("en"); $("ilang-ar").onclick=()=>setLang("ar"); $("ilang-en").onclick=()=>setLang("en");
+  $("look-verdict").onclick=()=>setLook("verdict"); $("look-label").onclick=()=>setLook("label"); $("look-scanner").onclick=()=>setLook("scanner");
+  applyStrings(); playIntro();
+</script>
+</body>
+</html>
