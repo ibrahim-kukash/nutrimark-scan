@@ -195,7 +195,8 @@
       </div>
     </div>
     <div style="height:14px"></div>
-    <input type="file" id="file" accept="image/*" capture="environment">
+    <!-- no capture attribute: the phone's own chooser offers camera and library, and it opens in every browser we have seen -->
+    <input type="file" id="file" accept="image/*">
     <input type="file" id="fileGallery" accept="image/*">
   </section>
 
@@ -227,7 +228,7 @@
   const S = {
     ar:{ title:"علامة التغذية", introTitle:"علامة التغذية", introLine:"صوّر جدول القيم الغذائية على أي منتج، واحصل على درجته من A إلى E خلال ثوانٍ", introGo:"امسح منتجاً",
       placeholder:"اضغط الزر لفتح الكاميرا، ثم صوّر جدول القيم الغذائية بوضوح", gallery:"أو اختر صورة من الاستوديو", hint:"وجّه الكاميرا نحو جدول القيم الغذائية ثم اضغط", reading:"جارٍ قراءة الملصق…", sending:"جارٍ الإرسال…",
-      opening:"جارٍ فتح الكاميرا…", retake:"صوّر مرة أخرى", notFood:"هذه ليست صورة ملصق غذائي. صوّر جدول القيم الغذائية.", retakeMsg:"لم تُقرأ الصورة بوضوح كافٍ. قرّب الكاميرا من الجدول وتجنّب الانعكاس.", errMsg:"تعذّر الاتصال بخدمة القراءة. حاول مرة أخرى.",
+      opening:"اختر «التقاط صورة» أو صورة من الاستوديو…", retake:"صوّر مرة أخرى", notFood:"هذه ليست صورة ملصق غذائي. صوّر جدول القيم الغذائية.", retakeMsg:"لم تُقرأ الصورة بوضوح كافٍ. قرّب الكاميرا من الجدول وتجنّب الانعكاس.", errMsg:"تعذّر الاتصال بخدمة القراءة. حاول مرة أخرى.",
       noTable:"لم يظهر جدول القيم الغذائية في الصورة. أدر العبوة إلى الجهة التي تحمل الجدول (الطاقة، الدهون، السكريات، الملح) وصوّره كاملاً.",
       incomplete:m=>`قُرئ الملصق، لكنه لا يذكر ${m}، ولا يمكن حساب الدرجة بدونها. هذا نقص في الملصق نفسه.`,
       missingNames:{sugar_g:"السكريات",satfat_g:"الدهون المشبعة",salt:"الملح",fat_g:"الدهون"},
@@ -243,7 +244,7 @@
       foot:"تقدير من بيانات الملصق وفق خوارزمية علامة التغذية المنشورة من مجلس أبوظبي للجودة والمطابقة ومسودة اللائحة الفنية الإماراتية. ليس شهادة رسمية.", again:"امسح منتجاً آخر" },
     en:{ title:"Nutri-Mark", introTitle:"Nutri-Mark", introLine:"Photograph the nutrition table on any product and get its A to E grade in seconds", introGo:"Scan a product",
       placeholder:"Tap the button to open the camera, then photograph the nutrition table clearly", gallery:"or choose a photo from the gallery", hint:"Point at the nutrition table, then tap", reading:"Reading the label…", sending:"Sending…",
-      opening:"Opening the camera…", retake:"Take another photo", notFood:"That is not a food label. Photograph the nutrition table.", retakeMsg:"The label could not be read clearly. Move closer to the table and avoid glare.", errMsg:"Could not reach the reading service. Try again.",
+      opening:"Choose “Take photo” or a photo from your library…", retake:"Take another photo", notFood:"That is not a food label. Photograph the nutrition table.", retakeMsg:"The label could not be read clearly. Move closer to the table and avoid glare.", errMsg:"Could not reach the reading service. Try again.",
       noTable:"The nutrition table is not in this photo. Turn the pack to the side that lists energy, fat, sugars and salt, and photograph the whole table.",
       incomplete:m=>`The label was read, but it does not list ${m}, and no grade can be computed without them. That is a gap in the label itself.`,
       missingNames:{sugar_g:"sugars",satfat_g:"saturated fat",salt:"salt",fat_g:"fat"},
