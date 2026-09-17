@@ -64,6 +64,9 @@ export function route(reading, checks, { minConfidence = 0.6, attempt = 1 } = {}
     ...(basisProblem ? ["basis_unclear"] : []), ...(categoryProblem ? ["category_unclear"] : []),
   ];
   if (reading.category === "other") return { action: "not_food", reasons: ["not_a_food_label"] };
+  // The reader could not even name a category and found no nutrition value at all: a face, a shoe, a wall.
+  const noValuesAtAll = ["energy_kJ","energy_kcal","fat_g","satfat_g","carb_g","sugar_g","fibre_g","protein_g","salt_g","sodium_mg"].every(k => !isNum(v[k]));
+  if (reading.category === "unsure" && noValuesAtAll) return { action: "not_food", reasons: ["not_a_food_label", "no_values_found"] };
   if (reasons.length === 0) return { action: "grade", reasons: [] };
   return { action: attempt === 1 ? "second_pass" : "retake", reasons };
 }

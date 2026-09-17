@@ -127,18 +127,37 @@ async function handleCorrect(request, env) {
   const headers = cors(env, request);
   let body;
   try { body = await request.json(); } catch { return json({ error: "expected JSON body" }, 400, headers); }
-  const { scan_id, reading, category, values } = body || {};
-  if (!scan_id || !reading) return json({ error: "scan_id and the reading to correct are required" }, 400, headers);
-  const corrected = { ...reading, category: category || reading.category, values: { ...reading.values, ...(values || {}) } };
+  const { scan_id, reading, category, values, device_id } = body || {};
+  if (!scan_id || typeof scan_id !== "string" || scan_id.length > 64 || !reading || typeof reading !== "object") return json({ error: "scan_id and the reading to correct are required" }, 400, headers);
+  const device = (device_id || request.headers.get("CF-Connecting-IP") || "anon").slice(0, 64);
+  const refused = await checkLimits(env.STORE, env, device);
+  if (refused) return json({ error: refused.reason }, refused.status, headers);
+  if (category && !rules.categories[category]) return json({ error: "unknown category" }, 400, headers);
+  const cleanValues = {};
+  for (const [k, v] of Object.entries(values || {})) { if (k in (reading.values || {}) && typeof v === "number" && Number.isFinite(v) && v >= 0) cleanValues[k] = v; }
+  const corrected = { ...reading, category: category || reading.category, values: { ...reading.values, ...cleanValues } };
   const per100 = toPer100(corrected.values, corrected.basis, corrected.serving_size);
   if (!per100) return json({ error: "basis still unclear" }, 400, headers);
+  const blocks = consistencyChecks(per100).filter(c => c.severity === "block");
+  if (blocks.length) return json({ error: "values fail consistency checks", checks: blocks }, 400, headers);
   const g = grade(corrected, per100);
+  if (!g.result.ok) return json({ error: g.result.error || "cannot grade", missing: g.result.missing }, 400, headers);
   await logCorrection(env.STORE, scan_id, { ts: new Date().toISOString(), category, values, grade: g.result.grade ?? null }, parseInt(env.LOG_TTL_SECONDS || "2592000", 10));
   return json({ scan_id, reading: corrected, per100, grade: g.result, reasons: g.reasons, flags: g.flags, corrected: true }, 200, headers);
 }
 
 export default {
   async fetch(request, env) {
+    try {
+      return await handleRequest(request, env);
+    } catch (err) {
+      // Never a bare 500: the browser needs the CORS headers to show the page's own error message.
+      return json({ error: "request failed", detail: String(err.message || err).slice(0, 160) }, err.name === "InvalidCharacterError" ? 400 : 500, cors(env, request));
+    }
+  },
+};
+
+async function handleRequest(request, env) {
     const url = new URL(request.url);
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors(env, request) });
     if (request.method === "GET" && url.pathname === "/health") return json({
@@ -158,5 +177,4 @@ export default {
     if (request.method === "POST" && url.pathname === "/scan") return handleScan(request, env);
     if (request.method === "POST" && url.pathname === "/correct") return handleCorrect(request, env);
     return json({ error: "not found" }, 404, cors(env, request));
-  },
-};
+}

@@ -215,7 +215,9 @@
 <script type="module">
   import { computeGrade, reasons as engineReasons } from "./engine/nutrimark.js";
   const BACKEND = "https://nutrimark-backend.dcl-ibrahim.workers.dev";
-  const rules = await (await fetch("./engine/rules.json")).json();
+  // The page grades nothing itself; the rules are only for the What-if slider. If they fail to load, the slider hides and everything else runs.
+  let rules = null;
+  try { rules = await (await fetch("./engine/rules.json", { cache: "no-cache" })).json(); } catch (e) { console.warn("rules.json unavailable, What-if disabled", e); }
 
   const S = {
     ar:{ title:"علامة التغذية", introTitle:"علامة التغذية", introLine:"صوّر جدول القيم الغذائية على أي منتج، واحصل على درجته من A إلى E خلال ثوانٍ", introGo:"امسح منتجاً",
@@ -227,7 +229,8 @@
       reasons:{sugar_g:"سكريات مرتفعة",energy_kJ:"سعرات مرتفعة",satfat_g:"دهون مشبعة مرتفعة",salt_g:"ملح مرتفع",sweeteners:"يحتوي على محليات",energy_from_satfat_kJ:"دهون مشبعة مرتفعة",satfat_ratio_pct:"نسبة عالية من الدهون المشبعة"},
       values:{energy_kJ:"الطاقة",satfat_g:"دهون مشبعة",sugar_g:"سكريات",salt_g:"ملح",fibre_g:"ألياف",protein_g:"بروتين",fat_g:"دهون",carb_g:"كربوهيدرات"},
       cat:{general:"غذاء عام",cheese:"جبن",red_meat:"لحوم حمراء",fats:"دهون وزيوت",beverages:"مشروب"},
-      per:b=>b==="per_100ml"?"القيم لكل 100 مل كما وردت على الملصق":"القيم لكل 100 غ كما وردت على الملصق",
+      per:(b,conv)=>conv?(b==="per_100ml"?"القيم محوّلة إلى 100 مل من حصة الملصق":"القيم محوّلة إلى 100 غ من حصة الملصق"):(b==="per_100ml"?"القيم لكل 100 مل كما وردت على الملصق":"القيم لكل 100 غ كما وردت على الملصق"),
+      badPhoto:"تعذّر فتح هذه الصورة. جرّب التقاطها مرة أخرى.",
       whatif:"ماذا لو خفّض المصنّع السكر؟", cut:p=>`سكر أقل بنسبة ${p}%`, becomes:(g,same)=> same?`تبقى الدرجة <b class="${g}">${g}</b>`:`تصبح الدرجة <b class="${g}">${g}</b>`,
       foot:"تقدير من بيانات الملصق وفق خوارزمية علامة التغذية المنشورة من مجلس أبوظبي للجودة والمطابقة ومسودة اللائحة الفنية الإماراتية. ليس شهادة رسمية.", again:"امسح منتجاً آخر" },
     en:{ title:"Nutri-Mark", introTitle:"Nutri-Mark", introLine:"Photograph the nutrition table on any product and get its A to E grade in seconds", introGo:"Scan a product",
@@ -239,7 +242,8 @@
       reasons:{sugar_g:"High in sugar",energy_kJ:"High in energy",satfat_g:"High in saturated fat",salt_g:"High in salt",sweeteners:"Contains sweeteners",energy_from_satfat_kJ:"High in saturated fat",satfat_ratio_pct:"High share of saturated fat"},
       values:{energy_kJ:"Energy",satfat_g:"Saturates",sugar_g:"Sugars",salt_g:"Salt",fibre_g:"Fibre",protein_g:"Protein",fat_g:"Fat",carb_g:"Carbohydrate"},
       cat:{general:"General food",cheese:"Cheese",red_meat:"Red meat",fats:"Fats and oils",beverages:"Beverage"},
-      per:b=>b==="per_100ml"?"Values per 100 ml as printed on the label":"Values per 100 g as printed on the label",
+      per:(b,conv)=>conv?(b==="per_100ml"?"Values converted to per 100 ml from the label's serving":"Values converted to per 100 g from the label's serving"):(b==="per_100ml"?"Values per 100 ml as printed on the label":"Values per 100 g as printed on the label"),
+      badPhoto:"This photo could not be opened. Try taking it again.",
       whatif:"What if the maker cut the sugar?", cut:p=>`${p}% less sugar`, becomes:(g,same)=> same?`Grade stays <b class="${g}">${g}</b>`:`Grade becomes <b class="${g}">${g}</b>`,
       foot:"Estimated from the label with the Nutri-Mark algorithm published by the Abu Dhabi Quality and Conformity Council and the UAE draft technical regulation. Not an official certificate.", again:"Scan another product" }
   };
@@ -295,17 +299,23 @@
     busy=true; clearTimers(); $("msg").classList.remove("show");
     const s=S[lang];
     hint.textContent=s.sending;
-    const { dataUrl, base64 } = await shrink(file);
+    let shrunk;
+    try { shrunk = await shrink(file); }
+    catch(err){ busy=false; hint.textContent=s.hint; showMsg(s.badPhoto); return; }
+    const { dataUrl, base64 } = shrunk;
     photoDataUrl=dataUrl; $("preview").src=dataUrl; $("preview").classList.add("show"); $("placeholder").style.display="none";
     cam.classList.add("scanning"); hint.textContent=s.reading;
     let data;
+    const ctrl=new AbortController(); const killer=setTimeout(()=>ctrl.abort(), 75000);   // two reads plus a fallback can take a while; never hang forever
     try{
-      const r=await fetch(BACKEND+"/scan",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({image_base64:base64,media_type:"image/jpeg",device_id:deviceId})});
-      data=await r.json();
+      const r=await fetch(BACKEND+"/scan",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({image_base64:base64,media_type:"image/jpeg",device_id:deviceId}),signal:ctrl.signal});
+      let text=await r.text();
+      try { data=JSON.parse(text); } catch { data={error:"HTTP "+r.status}; }
       if(!r.ok) throw new Error(data.error||("HTTP "+r.status));
     }catch(err){
-      cam.classList.remove("scanning"); busy=false; hint.textContent=s.hint; showMsg(s.errMsg+" ("+String(err.message).slice(0,80)+")"); return;
+      clearTimeout(killer); cam.classList.remove("scanning"); busy=false; hint.textContent=s.hint; showMsg(s.errMsg+" ("+String(err.name==="AbortError"?"timeout":err.message).slice(0,80)+")"); return;
     }
+    clearTimeout(killer);
     cam.classList.remove("scanning");
     const act=data.decision && data.decision.action;
     if(act==="not_food"){ busy=false; hint.textContent=s.hint; showMsg(s.notFood); return; }
@@ -323,7 +333,8 @@
     const s=S[lang], d=current, rd=d.reading, g=d.grade;
     $("pname").textContent = rd.product_name || s.cat[rd.category] || "";
     $("pmeta").textContent = [rd.brand, s.cat[rd.category]].filter(Boolean).join(" · ");
-    $("per").textContent = s.per(rd.basis==="per_100ml"||rd.category==="beverages"?"per_100ml":"per_100g");
+    const converted = rd.basis==="per_serving" || (!isNum((rd.values||{}).salt_g) && isNum((rd.values||{}).sodium_mg));
+    $("per").textContent = s.per(rd.basis==="per_100ml"||rd.category==="beverages"?"per_100ml":"per_100g", converted);
     const v=d.per100||{};
     const rows=[["energy_kJ",v.energy_kJ,"kJ"],["sugar_g",v.sugar_g,"g"],["satfat_g",v.satfat_g,"g"],["salt_g",isNum(v.salt_g)?v.salt_g:(isNum(v.sodium_mg)?round1(v.sodium_mg/1000*2.5):null),"g"],["fibre_g",v.fibre_g,"g"],["protein_g",v.protein_g,"g"],["fat_g",v.fat_g,"g"],["carb_g",v.carb_g,"g"]];
     $("values").innerHTML = rows.map(([k,val,u])=>`<div><dt>${s.values[k]}</dt><dd>${isNum(val)?val:"–"}<small>${isNum(val)?u:""}</small></dd></div>`).join("");
@@ -339,6 +350,8 @@
   function whatIfInput(cut){ const base=current.engine_input; return {...base, sugar_g: round1(base.sugar_g*(1-cut/100))}; }
   function renderWhatIf(){
     const s=S[lang]; const cut=+$("cut").value; $("cutout").textContent=s.cut(cut);
+    if(!rules || !current.engine_input){ $("whatif").style.display="none"; setHit(current.grade.grade, false); return; }
+    $("whatif").style.display="";
     const g2=computeGrade(rules, whatIfInput(cut)); const g=g2.ok?g2.grade:current.grade.grade;
     $("becomes").innerHTML=s.becomes(g, g===current.grade.grade); $("becomes").style.setProperty("--gcol",COL[g]);
     setHit(g, g!==shownGrade);
