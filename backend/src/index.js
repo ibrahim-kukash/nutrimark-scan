@@ -35,11 +35,16 @@ function grade(reading, per100) {
 }
 
 // Try each Claude model in the chain, then the other provider. The first reader that answers wins.
-async function readOnce(env, imageBase64, mediaType, models, hint, effort) {
-  const timeoutMs = parseInt(env.READER_TIMEOUT_MS || "30000", 10);
+// An overall budget bounds the wait: a visitor never waits for three full timeouts in a row.
+async function readOnce(env, imageBase64, mediaType, models, hint, effort, budgetMs = 45000) {
+  const perTry = parseInt(env.READER_TIMEOUT_MS || "30000", 10);
+  const started = Date.now();
+  const remaining = () => budgetMs - (Date.now() - started);
   const errors = [];
   if (env.ANTHROPIC_API_KEY) {
     for (const model of models) {
+      if (remaining() < 5000) break;
+      const timeoutMs = Math.min(perTry, remaining());
       try {
         const r = await readWithClaude({ apiKey: env.ANTHROPIC_API_KEY, model, imageBase64, mediaType, timeoutMs, effort, hint });
         if (errors.length) r.fallback_from = errors.join(" | ");
@@ -47,9 +52,10 @@ async function readOnce(env, imageBase64, mediaType, models, hint, effort) {
       } catch (err) { errors.push(`${model}: ${String(err.message || err).slice(0, 120)}`); }
     }
   }
-  if (env.GOOGLE_API_KEY) {
+  if (env.GOOGLE_API_KEY && remaining() >= 5000) {
     try {
-      const r = await readWithGemini({ apiKey: env.GOOGLE_API_KEY, model: env.GEMINI_MODEL || "gemini-2.5-flash", imageBase64, mediaType, timeoutMs });
+      const timeoutMs = Math.min(perTry, remaining());
+      const r = await readWithGemini({ apiKey: env.GOOGLE_API_KEY, model: env.GEMINI_MODEL || "unset", imageBase64, mediaType, timeoutMs });
       if (errors.length) r.fallback_from = errors.join(" | ");
       return r;
     } catch (err) { errors.push(`gemini: ${String(err.message || err).slice(0, 120)}`); }
@@ -64,9 +70,10 @@ async function handleScan(request, env) {
   const { image_base64, media_type, device_id } = body || {};
   if (!image_base64 || !ALLOWED_TYPES.has(media_type)) return json({ error: "image_base64 and a jpeg/png/webp media_type are required" }, 400, headers);
   if (image_base64.length * 0.75 > MAX_IMAGE_BYTES) return json({ error: "image too large" }, 413, headers);
-  const device = (device_id || request.headers.get("CF-Connecting-IP") || "anon").slice(0, 64);
+  const ip = request.headers.get("CF-Connecting-IP") || "noip";
+  const device = `${ip}|${String(device_id || "anon").slice(0, 40)}`;   // limits bind on the network address, not only on a value the caller picks
 
-  const refused = await checkLimits(env.STORE, env, device);
+  const refused = await checkLimits(env.STORE, env, ip);
   if (refused) return json({ error: refused.reason }, refused.status, headers);
 
   const bytes = Uint8Array.from(atob(image_base64), c => c.charCodeAt(0));
@@ -96,7 +103,7 @@ async function handleScan(request, env) {
     attempt = 2;
     const hint = `A first read was uncertain about: ${decision.reasons.join(", ")}. Read the table again with care and report null for anything not printed.`;
     try {
-      read = await readOnce(env, image_base64, media_type, [second], hint, "high");
+      read = await readOnce(env, image_base64, media_type, [second], hint, "high", 35000);
     } catch (err) {
       passes.push({ model: second, error: String(err.message || err).slice(0, 200) });
       decision = { action: "retake", reasons: [...decision.reasons, "second_pass_failed"] };
@@ -129,8 +136,8 @@ async function handleCorrect(request, env) {
   try { body = await request.json(); } catch { return json({ error: "expected JSON body" }, 400, headers); }
   const { scan_id, reading, category, values, device_id } = body || {};
   if (!scan_id || typeof scan_id !== "string" || scan_id.length > 64 || !reading || typeof reading !== "object") return json({ error: "scan_id and the reading to correct are required" }, 400, headers);
-  const device = (device_id || request.headers.get("CF-Connecting-IP") || "anon").slice(0, 64);
-  const refused = await checkLimits(env.STORE, env, device);
+  const ip = request.headers.get("CF-Connecting-IP") || "noip";
+  const refused = await checkLimits(env.STORE, env, ip);
   if (refused) return json({ error: refused.reason }, refused.status, headers);
   if (category && !rules.categories[category]) return json({ error: "unknown category" }, 400, headers);
   const cleanValues = {};
