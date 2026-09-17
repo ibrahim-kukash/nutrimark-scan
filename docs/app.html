@@ -221,6 +221,7 @@
     ar:{ title:"علامة التغذية", introTitle:"علامة التغذية", introLine:"صوّر جدول القيم الغذائية على أي منتج، واحصل على درجته من A إلى E خلال ثوانٍ", introGo:"امسح منتجاً",
       placeholder:"اضغط الزر لفتح الكاميرا، ثم صوّر جدول القيم الغذائية بوضوح", hint:"وجّه الكاميرا نحو جدول القيم الغذائية ثم اضغط", reading:"جارٍ قراءة الملصق…", sending:"جارٍ الإرسال…",
       retake:"صوّر مرة أخرى", notFood:"هذه ليست صورة ملصق غذائي. صوّر جدول القيم الغذائية.", retakeMsg:"لم تُقرأ الصورة بوضوح كافٍ. قرّب الكاميرا من الجدول وتجنّب الانعكاس.", errMsg:"تعذّر الاتصال بخدمة القراءة. حاول مرة أخرى.",
+      noTable:"لم يظهر جدول القيم الغذائية في الصورة. أدر العبوة إلى الجهة التي تحمل الجدول (الطاقة، الدهون، السكريات، الملح) وصوّره كاملاً.",
       meaning:{A:"الأفضل تغذوياً",B:"جيد",C:"متوسط",D:"منخفض",E:"الأدنى تغذوياً"},
       meaningSub:{A:"منخفض السعرات والسكر والملح",B:"منخفض عموماً في السكر والملح",C:"كميات معتدلة من السكر أو الملح",D:"مرتفع نسبياً في السكر أو الدهون أو الملح",E:"مرتفع في السكر والدهون المشبعة والملح"},
       reasons:{sugar_g:"سكريات مرتفعة",energy_kJ:"سعرات مرتفعة",satfat_g:"دهون مشبعة مرتفعة",salt_g:"ملح مرتفع",sweeteners:"يحتوي على محليات",energy_from_satfat_kJ:"دهون مشبعة مرتفعة",satfat_ratio_pct:"نسبة عالية من الدهون المشبعة"},
@@ -232,6 +233,7 @@
     en:{ title:"Nutri-Mark", introTitle:"Nutri-Mark", introLine:"Photograph the nutrition table on any product and get its A to E grade in seconds", introGo:"Scan a product",
       placeholder:"Tap the button to open the camera, then photograph the nutrition table clearly", hint:"Point at the nutrition table, then tap", reading:"Reading the label…", sending:"Sending…",
       retake:"Take another photo", notFood:"That is not a food label. Photograph the nutrition table.", retakeMsg:"The label could not be read clearly. Move closer to the table and avoid glare.", errMsg:"Could not reach the reading service. Try again.",
+      noTable:"The nutrition table is not in this photo. Turn the pack to the side that lists energy, fat, sugars and salt, and photograph the whole table.",
       meaning:{A:"Best",B:"Good",C:"Moderate",D:"Low",E:"Lowest"},
       meaningSub:{A:"Low in energy, sugar and salt",B:"Generally low in sugar and salt",C:"Moderate sugar or salt",D:"Relatively high in sugar, fat or salt",E:"High in sugar, saturated fat and salt"},
       reasons:{sugar_g:"High in sugar",energy_kJ:"High in energy",satfat_g:"High in saturated fat",salt_g:"High in salt",sweeteners:"Contains sweeteners",energy_from_satfat_kJ:"High in saturated fat",satfat_ratio_pct:"High share of saturated fat"},
@@ -307,7 +309,12 @@
     cam.classList.remove("scanning");
     const act=data.decision && data.decision.action;
     if(act==="not_food"){ busy=false; hint.textContent=s.hint; showMsg(s.notFood); return; }
-    if(act!=="grade" || !data.grade || !data.grade.ok){ busy=false; hint.textContent=s.hint; showMsg(s.retakeMsg); return; }
+    if(act!=="grade" || !data.grade || !data.grade.ok){
+      busy=false; hint.textContent=s.hint;
+      const rs=(data.decision&&data.decision.reasons)||[];
+      const noValues = rs.includes("missing_energy") && rs.includes("missing_sugar_g");   // reader saw the pack but no table
+      showMsg(noValues ? s.noTable : s.retakeMsg); return;
+    }
     current=data; showResult();
   }
 

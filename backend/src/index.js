@@ -115,6 +115,8 @@ async function handleScan(request, env) {
   }
   await logScan(env.STORE, {
     scan_id, ts: new Date().toISOString(), device, category: read.reading.category, basis: read.reading.basis,
+    product: read.reading.product_name, language: read.reading.label_language, confidence: read.reading.confidence,
+    reader_notes: String(read.reading.notes || "").slice(0, 300), category_reason: String(read.reading.category_reason || "").slice(0, 200),
     per100, grade: out.grade?.grade ?? null, score: out.grade?.score ?? null, decision: decision.action, reasons: decision.reasons,
     passes: passes.map(p => ({ model: p.model, provider: p.provider, usage: p.usage })),
   }, parseInt(env.LOG_TTL_SECONDS || "2592000", 10));
