@@ -78,6 +78,8 @@
   .shutter{width:72px;height:72px;border-radius:50%;border:4px solid #fff;background:transparent;display:grid;place-items:center;cursor:pointer;padding:0}
   .shutter span{width:54px;height:54px;border-radius:50%;background:#fff;transition:transform .15s ease,background .2s}
   .shutter:active span{transform:scale(.88)}
+  .gallery{font:inherit;font-size:12.5px;color:#fff;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.35);border-radius:10px;padding:6px 12px;cursor:pointer}
+  .scanning .gallery{pointer-events:none;opacity:.5}
   .scanning .shutter{pointer-events:none}
   .scanning .shutter span{background:var(--accent);animation:pulse 1.1s ease-in-out infinite}
   @keyframes pulse{50%{transform:scale(.82)}}
@@ -189,10 +191,12 @@
       <div class="camfoot">
         <div class="hint" id="hint"></div>
         <button class="shutter" id="shutter" aria-label="Scan"><span></span></button>
+        <button class="gallery" id="galleryBtn" data-t="gallery"></button>
       </div>
     </div>
     <div style="height:14px"></div>
     <input type="file" id="file" accept="image/*" capture="environment">
+    <input type="file" id="fileGallery" accept="image/*">
   </section>
 
   <section class="screen result" id="result" hidden>
@@ -218,12 +222,12 @@
   const BACKEND = "https://nutrimark-backend.dcl-ibrahim.workers.dev";
   // The page grades nothing itself; the rules are only for the What-if slider. If they fail to load, the slider hides and everything else runs.
   let rules = null;
-  try { rules = await (await fetch("./engine/rules.json", { cache: "no-cache" })).json(); } catch (e) { console.warn("rules.json unavailable, What-if disabled", e); }
+  fetch("./engine/rules.json").then(r => r.json()).then(j => { rules = j; }).catch(e => console.warn("rules.json unavailable, What-if disabled", e));   // never block the page on this
 
   const S = {
     ar:{ title:"علامة التغذية", introTitle:"علامة التغذية", introLine:"صوّر جدول القيم الغذائية على أي منتج، واحصل على درجته من A إلى E خلال ثوانٍ", introGo:"امسح منتجاً",
-      placeholder:"اضغط الزر لفتح الكاميرا، ثم صوّر جدول القيم الغذائية بوضوح", hint:"وجّه الكاميرا نحو جدول القيم الغذائية ثم اضغط", reading:"جارٍ قراءة الملصق…", sending:"جارٍ الإرسال…",
-      retake:"صوّر مرة أخرى", notFood:"هذه ليست صورة ملصق غذائي. صوّر جدول القيم الغذائية.", retakeMsg:"لم تُقرأ الصورة بوضوح كافٍ. قرّب الكاميرا من الجدول وتجنّب الانعكاس.", errMsg:"تعذّر الاتصال بخدمة القراءة. حاول مرة أخرى.",
+      placeholder:"اضغط الزر لفتح الكاميرا، ثم صوّر جدول القيم الغذائية بوضوح", gallery:"أو اختر صورة من الاستوديو", hint:"وجّه الكاميرا نحو جدول القيم الغذائية ثم اضغط", reading:"جارٍ قراءة الملصق…", sending:"جارٍ الإرسال…",
+      opening:"جارٍ فتح الكاميرا…", retake:"صوّر مرة أخرى", notFood:"هذه ليست صورة ملصق غذائي. صوّر جدول القيم الغذائية.", retakeMsg:"لم تُقرأ الصورة بوضوح كافٍ. قرّب الكاميرا من الجدول وتجنّب الانعكاس.", errMsg:"تعذّر الاتصال بخدمة القراءة. حاول مرة أخرى.",
       noTable:"لم يظهر جدول القيم الغذائية في الصورة. أدر العبوة إلى الجهة التي تحمل الجدول (الطاقة، الدهون، السكريات، الملح) وصوّره كاملاً.",
       incomplete:m=>`قُرئ الملصق، لكنه لا يذكر ${m}، ولا يمكن حساب الدرجة بدونها. هذا نقص في الملصق نفسه.`,
       missingNames:{sugar_g:"السكريات",satfat_g:"الدهون المشبعة",salt:"الملح",fat_g:"الدهون"},
@@ -238,8 +242,8 @@
       whatif:"ماذا لو خفّض المصنّع السكر؟", cut:p=>`سكر أقل بنسبة ${p}%`, becomes:(g,same)=> same?`تبقى الدرجة <b class="${g}">${g}</b>`:`تصبح الدرجة <b class="${g}">${g}</b>`,
       foot:"تقدير من بيانات الملصق وفق خوارزمية علامة التغذية المنشورة من مجلس أبوظبي للجودة والمطابقة ومسودة اللائحة الفنية الإماراتية. ليس شهادة رسمية.", again:"امسح منتجاً آخر" },
     en:{ title:"Nutri-Mark", introTitle:"Nutri-Mark", introLine:"Photograph the nutrition table on any product and get its A to E grade in seconds", introGo:"Scan a product",
-      placeholder:"Tap the button to open the camera, then photograph the nutrition table clearly", hint:"Point at the nutrition table, then tap", reading:"Reading the label…", sending:"Sending…",
-      retake:"Take another photo", notFood:"That is not a food label. Photograph the nutrition table.", retakeMsg:"The label could not be read clearly. Move closer to the table and avoid glare.", errMsg:"Could not reach the reading service. Try again.",
+      placeholder:"Tap the button to open the camera, then photograph the nutrition table clearly", gallery:"or choose a photo from the gallery", hint:"Point at the nutrition table, then tap", reading:"Reading the label…", sending:"Sending…",
+      opening:"Opening the camera…", retake:"Take another photo", notFood:"That is not a food label. Photograph the nutrition table.", retakeMsg:"The label could not be read clearly. Move closer to the table and avoid glare.", errMsg:"Could not reach the reading service. Try again.",
       noTable:"The nutrition table is not in this photo. Turn the pack to the side that lists energy, fat, sugars and salt, and photograph the whole table.",
       incomplete:m=>`The label was read, but it does not list ${m}, and no grade can be computed without them. That is a gap in the label itself.`,
       missingNames:{sugar_g:"sugars",satfat_g:"saturated fat",salt:"salt",fat_g:"fat"},
@@ -287,8 +291,11 @@
       requestAnimationFrame(()=>requestAnimationFrame(()=>scan.classList.remove("entering"))); },380); }
 
   // ---------- camera ----------
-  $("shutter").addEventListener("click", ()=>{ if(!busy) $("file").click(); });
-  $("file").addEventListener("change", async e=>{ const f=e.target.files && e.target.files[0]; e.target.value=""; if(f) await handlePhoto(f); });
+  $("shutter").addEventListener("click", ()=>{ if(busy) return; hint.textContent=S[lang].opening; $("file").click(); });
+  $("galleryBtn").addEventListener("click", ()=>{ if(!busy) $("fileGallery").click(); });
+  const onPick = async e=>{ const f=e.target.files && e.target.files[0]; e.target.value=""; if(f) await handlePhoto(f); else if(!busy) hint.textContent=S[lang].hint; };
+  $("file").addEventListener("change", onPick);
+  $("fileGallery").addEventListener("change", onPick);
 
   async function shrink(file, max=1280){
     const bmp = await createImageBitmap(file).catch(()=>null);
