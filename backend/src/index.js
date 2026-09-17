@@ -67,8 +67,14 @@ async function handleScan(request, env) {
   const primary = env.PRIMARY_MODEL || "claude-sonnet-5";
   const second = env.SECOND_PASS_MODEL || "claude-opus-5";
 
+  if (!env.ANTHROPIC_API_KEY && !env.GOOGLE_API_KEY) return json({ error: "no reader configured" }, 503, headers);
+
   let attempt = 1, read, passes = [];
-  read = await readOnce(env, image_base64, media_type, primary, "", "medium");
+  try {
+    read = await readOnce(env, image_base64, media_type, primary, "", "medium");
+  } catch (err) {
+    return json({ error: "reader unavailable", detail: String(err.message || err).slice(0, 200) }, 502, headers);
+  }
   let per100 = toPer100(read.reading.values, read.reading.basis, read.reading.serving_size);
   let checks = per100 ? consistencyChecks(per100) : [{ code: "basis_unclear", severity: "block", message: "could not put the values on a per-100 basis" }];
   let decision = route(read.reading, checks, { attempt });
@@ -77,7 +83,12 @@ async function handleScan(request, env) {
   if (decision.action === "second_pass") {
     attempt = 2;
     const hint = `A first read was uncertain about: ${decision.reasons.join(", ")}. Read the table again with care and report null for anything not printed.`;
-    read = await readOnce(env, image_base64, media_type, second, hint, "high");
+    try {
+      read = await readOnce(env, image_base64, media_type, second, hint, "high");
+    } catch (err) {
+      passes.push({ model: second, error: String(err.message || err).slice(0, 200) });
+      decision = { action: "retake", reasons: [...decision.reasons, "second_pass_failed"] };
+    }
     per100 = toPer100(read.reading.values, read.reading.basis, read.reading.serving_size);
     checks = per100 ? consistencyChecks(per100) : [{ code: "basis_unclear", severity: "block", message: "could not put the values on a per-100 basis" }];
     decision = route(read.reading, checks, { attempt });
