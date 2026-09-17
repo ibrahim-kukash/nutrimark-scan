@@ -74,6 +74,26 @@ test("missing fibre is counted as 0 and flagged, not refused", () => {
   assert.equal(computeGrade(rules, input).ok, true);
 });
 
+test("plain bottled water with no table is graded A on the spot", () => {
+  const water = { ...cereal, category: "beverages", basis: "unsure", plain_water: true,
+    values: { energy_kJ: null, energy_kcal: null, fat_g: null, satfat_g: null, carb_g: null, sugar_g: null, fibre_g: null, protein_g: null, salt_g: null, sodium_mg: null },
+    confidence: { energy: 0, fat: 0, satfat: 0, carb: 0, sugar: 0, fibre: 0, protein: 0, salt: 0, category: 0.98, basis: 0.2 } };
+  const r = route(water, [], { attempt: 1 });
+  assert.equal(r.action, "grade");
+  const { input } = toEngineInput(water, {});
+  assert.equal(computeGrade(rules, input).grade, "A");
+});
+
+test("a confidently read label that omits sugars, saturates and salt is incomplete, not unreadable", () => {
+  const tea = { ...cereal, category: "general", basis: "per_100g",
+    values: { energy_kJ: null, energy_kcal: 189.1, fat_g: 3.8, satfat_g: null, carb_g: 42.6, sugar_g: null, fibre_g: null, protein_g: 3.9, salt_g: null, sodium_mg: null },
+    confidence: { energy: 0.96, fat: 0.95, satfat: 0, carb: 0.95, sugar: 0, fibre: 0, protein: 0.95, salt: 0, category: 0.9, basis: 0.95 } };
+  assert.equal(route(tea, [], { attempt: 1 }).action, "second_pass");
+  const r = route(tea, [], { attempt: 2 });
+  assert.equal(r.action, "incomplete_label");
+  assert.deepEqual(r.missing.sort(), ["salt", "satfat_g", "sugar_g"]);
+});
+
 test("a non-food photo is routed as not_food", () => {
   assert.equal(route({ ...cereal, category: "other" }, []).action, "not_food");
 });

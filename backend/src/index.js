@@ -116,7 +116,7 @@ async function handleScan(request, env) {
 
   const out = { scan_id, reading: read.reading, per100, checks, decision, passes };
   if (decision.action === "grade") {
-    const g = grade(read.reading, per100);
+    const g = grade(read.reading, per100 || {});   // plain water has no table: empty values, the engine grades it A
     Object.assign(out, { grade: g.result, reasons: g.reasons, flags: g.flags, engine_input: g.input });
     await cachePut(env.STORE, key, out, parseInt(env.CACHE_TTL_SECONDS || "604800", 10));
   }

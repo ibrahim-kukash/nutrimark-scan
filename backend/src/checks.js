@@ -64,10 +64,21 @@ export function route(reading, checks, { minConfidence = 0.6, attempt = 1 } = {}
     ...(basisProblem ? ["basis_unclear"] : []), ...(categoryProblem ? ["category_unclear"] : []),
   ];
   if (reading.category === "other") return { action: "not_food", reasons: ["not_a_food_label"] };
+  // Plain water carries no nutrition table and is grade A by definition (QCC Q&A). Grade it without values.
+  if (reading.category === "beverages" && reading.plain_water === true && !isNum(v.sugar_g) && !isNum(v.energy_kJ) && !isNum(v.energy_kcal)) {
+    return { action: "grade", reasons: ["plain_water"] };
+  }
   // The reader could not even name a category and found no nutrition value at all: a face, a shoe, a wall.
   const noValuesAtAll = ["energy_kJ","energy_kcal","fat_g","satfat_g","carb_g","sugar_g","fibre_g","protein_g","salt_g","sodium_mg"].every(k => !isNum(v[k]));
   if (reading.category === "unsure" && noValuesAtAll) return { action: "not_food", reasons: ["not_a_food_label", "no_values_found"] };
   if (reasons.length === 0) return { action: "grade", reasons: [] };
+  // The table was read with confidence, but the label itself does not print what the grade needs: a fact about the label, not the photo.
+  const readSomething = ["energy_kJ", "energy_kcal", "fat_g", "carb_g", "protein_g"].some(k => isNum(v[k]));
+  const requiredMissing = missing.filter(k => k !== "energy");
+  const onlyMissing = reasons.every(r => r.startsWith("missing_") || low.some(k => r === `low_confidence_${k}` && !isNum(v[k === "salt" ? "salt_g" : k === "energy" ? "energy_kJ" : k + "_g"])));
+  if (attempt >= 2 && readSomething && requiredMissing.length && onlyMissing && blocks.length === 0 && !basisProblem) {
+    return { action: "incomplete_label", reasons, missing: requiredMissing };
+  }
   return { action: attempt === 1 ? "second_pass" : "retake", reasons };
 }
 
@@ -80,8 +91,8 @@ export function toEngineInput(reading, per100) {
     energy_kJ: isNum(v.energy_kJ) ? v.energy_kJ : undefined,
     energy_kcal: isNum(v.energy_kcal) ? v.energy_kcal : undefined,
     fat_g: isNum(v.fat_g) ? v.fat_g : undefined,
-    satfat_g: v.satfat_g,
-    sugar_g: v.sugar_g,
+    satfat_g: isNum(v.satfat_g) ? v.satfat_g : undefined,
+    sugar_g: isNum(v.sugar_g) ? v.sugar_g : undefined,
     salt_g: isNum(v.salt_g) ? v.salt_g : undefined,
     sodium_mg: isNum(v.sodium_mg) ? v.sodium_mg : undefined,
     fibre_g: isNum(v.fibre_g) ? v.fibre_g : 0,

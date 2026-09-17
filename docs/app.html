@@ -143,7 +143,8 @@
   .msg{position:absolute;left:22px;right:22px;top:40%;transform:translateY(-50%);background:rgba(20,22,31,.92);color:#fff;border-radius:16px;padding:16px 18px;font-size:14.5px;line-height:1.5;text-align:center;z-index:3;display:none}
   .msg.show{display:block}
   .msg button{margin-top:12px;font:inherit;font-size:14px;font-weight:600;padding:10px 16px;border-radius:10px;border:0;background:#fff;color:#14161F;cursor:pointer}
-  input[type=file]{display:none}
+  /* not display:none: some in-app browsers refuse to open a hidden file input */
+  input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;left:-9999px}
 </style>
 </head>
 <body>
@@ -224,6 +225,9 @@
       placeholder:"اضغط الزر لفتح الكاميرا، ثم صوّر جدول القيم الغذائية بوضوح", hint:"وجّه الكاميرا نحو جدول القيم الغذائية ثم اضغط", reading:"جارٍ قراءة الملصق…", sending:"جارٍ الإرسال…",
       retake:"صوّر مرة أخرى", notFood:"هذه ليست صورة ملصق غذائي. صوّر جدول القيم الغذائية.", retakeMsg:"لم تُقرأ الصورة بوضوح كافٍ. قرّب الكاميرا من الجدول وتجنّب الانعكاس.", errMsg:"تعذّر الاتصال بخدمة القراءة. حاول مرة أخرى.",
       noTable:"لم يظهر جدول القيم الغذائية في الصورة. أدر العبوة إلى الجهة التي تحمل الجدول (الطاقة، الدهون، السكريات، الملح) وصوّره كاملاً.",
+      incomplete:m=>`قُرئ الملصق، لكنه لا يذكر ${m}، ولا يمكن حساب الدرجة بدونها. هذا نقص في الملصق نفسه.`,
+      missingNames:{sugar_g:"السكريات",satfat_g:"الدهون المشبعة",salt:"الملح",fat_g:"الدهون"},
+      waterNote:"ماء شرب عادي: الدرجة A بحكم التعريف، دون جدول قيم غذائية.",
       meaning:{A:"الأفضل تغذوياً",B:"جيد",C:"متوسط",D:"منخفض",E:"الأدنى تغذوياً"},
       meaningSub:{A:"منخفض السعرات والسكر والملح",B:"منخفض عموماً في السكر والملح",C:"كميات معتدلة من السكر أو الملح",D:"مرتفع نسبياً في السكر أو الدهون أو الملح",E:"مرتفع في السكر والدهون المشبعة والملح"},
       reasons:{sugar_g:"سكريات مرتفعة",energy_kJ:"سعرات مرتفعة",satfat_g:"دهون مشبعة مرتفعة",salt_g:"ملح مرتفع",sweeteners:"يحتوي على محليات",energy_from_satfat_kJ:"دهون مشبعة مرتفعة",satfat_ratio_pct:"نسبة عالية من الدهون المشبعة"},
@@ -237,6 +241,9 @@
       placeholder:"Tap the button to open the camera, then photograph the nutrition table clearly", hint:"Point at the nutrition table, then tap", reading:"Reading the label…", sending:"Sending…",
       retake:"Take another photo", notFood:"That is not a food label. Photograph the nutrition table.", retakeMsg:"The label could not be read clearly. Move closer to the table and avoid glare.", errMsg:"Could not reach the reading service. Try again.",
       noTable:"The nutrition table is not in this photo. Turn the pack to the side that lists energy, fat, sugars and salt, and photograph the whole table.",
+      incomplete:m=>`The label was read, but it does not list ${m}, and no grade can be computed without them. That is a gap in the label itself.`,
+      missingNames:{sugar_g:"sugars",satfat_g:"saturated fat",salt:"salt",fat_g:"fat"},
+      waterNote:"Plain drinking water: grade A by definition, no nutrition table needed.",
       meaning:{A:"Best",B:"Good",C:"Moderate",D:"Low",E:"Lowest"},
       meaningSub:{A:"Low in energy, sugar and salt",B:"Generally low in sugar and salt",C:"Moderate sugar or salt",D:"Relatively high in sugar, fat or salt",E:"High in sugar, saturated fat and salt"},
       reasons:{sugar_g:"High in sugar",energy_kJ:"High in energy",satfat_g:"High in saturated fat",salt_g:"High in salt",sweeteners:"Contains sweeteners",energy_from_satfat_kJ:"High in saturated fat",satfat_ratio_pct:"High share of saturated fat"},
@@ -319,6 +326,11 @@
     cam.classList.remove("scanning");
     const act=data.decision && data.decision.action;
     if(act==="not_food"){ busy=false; hint.textContent=s.hint; showMsg(s.notFood); return; }
+    if(act==="incomplete_label"){
+      busy=false; hint.textContent=s.hint;
+      const names=(data.decision.missing||[]).map(k=>s.missingNames[k]||k);
+      showMsg(s.incomplete(names.join(lang==="ar"?" و":", "))); return;
+    }
     if(act!=="grade" || !data.grade || !data.grade.ok){
       busy=false; hint.textContent=s.hint;
       const rs=(data.decision&&data.decision.reasons)||[];
@@ -334,7 +346,8 @@
     $("pname").textContent = rd.product_name || s.cat[rd.category] || "";
     $("pmeta").textContent = [rd.brand, s.cat[rd.category]].filter(Boolean).join(" · ");
     const converted = rd.basis==="per_serving" || (!isNum((rd.values||{}).salt_g) && isNum((rd.values||{}).sodium_mg));
-    $("per").textContent = s.per(rd.basis==="per_100ml"||rd.category==="beverages"?"per_100ml":"per_100g", converted);
+    const isWater = (d.decision&&d.decision.reasons||[]).includes("plain_water");
+    $("per").textContent = isWater ? s.waterNote : s.per(rd.basis==="per_100ml"||rd.category==="beverages"?"per_100ml":"per_100g", converted);
     const v=d.per100||{};
     const rows=[["energy_kJ",v.energy_kJ,"kJ"],["sugar_g",v.sugar_g,"g"],["satfat_g",v.satfat_g,"g"],["salt_g",isNum(v.salt_g)?v.salt_g:(isNum(v.sodium_mg)?round1(v.sodium_mg/1000*2.5):null),"g"],["fibre_g",v.fibre_g,"g"],["protein_g",v.protein_g,"g"],["fat_g",v.fat_g,"g"],["carb_g",v.carb_g,"g"]];
     $("values").innerHTML = rows.map(([k,val,u])=>`<div><dt>${s.values[k]}</dt><dd>${isNum(val)?val:"–"}<small>${isNum(val)?u:""}</small></dd></div>`).join("");
@@ -350,7 +363,7 @@
   function whatIfInput(cut){ const base=current.engine_input; return {...base, sugar_g: round1(base.sugar_g*(1-cut/100))}; }
   function renderWhatIf(){
     const s=S[lang]; const cut=+$("cut").value; $("cutout").textContent=s.cut(cut);
-    if(!rules || !current.engine_input){ $("whatif").style.display="none"; setHit(current.grade.grade, false); return; }
+    if(!rules || !current.engine_input || !isNum(current.engine_input.sugar_g)){ $("whatif").style.display="none"; setHit(current.grade.grade, false); return; }
     $("whatif").style.display="";
     const g2=computeGrade(rules, whatIfInput(cut)); const g=g2.ok?g2.grade:current.grade.grade;
     $("becomes").innerHTML=s.becomes(g, g===current.grade.grade); $("becomes").style.setProperty("--gcol",COL[g]);
@@ -409,6 +422,9 @@
   $("lang-ar").onclick=()=>setLang("ar"); $("lang-en").onclick=()=>setLang("en"); $("ilang-ar").onclick=()=>setLang("ar"); $("ilang-en").onclick=()=>setLang("en");
   $("look-verdict").onclick=()=>setLook("verdict"); $("look-label").onclick=()=>setLook("label"); $("look-scanner").onclick=()=>setLook("scanner");
   applyStrings(); playIntro();
+  // Any script error shows on screen, so a phone problem can be read back instead of guessed.
+  window.addEventListener("error", e => { try { hint.textContent = "script error: " + (e.message || e.type); } catch {} });
+  window.addEventListener("unhandledrejection", e => { try { hint.textContent = "error: " + String(e.reason && e.reason.message || e.reason).slice(0, 120); } catch {} });
 </script>
 </body>
 </html>
