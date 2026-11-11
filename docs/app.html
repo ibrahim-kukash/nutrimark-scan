@@ -317,6 +317,7 @@
       retakeMsg:"لم نتمكّن من قراءة الأرقام بوضوح. قرّب الكاميرا من الجدول، واجعله مستقيماً داخل الإطار، وتجنّب انعكاس الضوء.",
       noTable:"لم يظهر جدول القيم الغذائية في الصورة. اقلب العبوة إلى الجهة التي تحمل الجدول (الطاقة، الدهون، السكريات، الملح) وصوّر الجدول كاملاً.",
       errMsg:"تعذّر الوصول إلى خدمة القراءة. تحقّق من الاتصال وحاول مرة أخرى.", timeoutMsg:"استغرقت القراءة وقتاً أطول من المعتاد. حاول مرة أخرى.",
+      busyMsg:"خدمة القراءة مشغولة الآن. حاول مرة أخرى بعد قليل.",
       badPhoto:"تعذّر فتح هذه الصورة. جرّب التقاطها مرة أخرى.",
       declinedMsg:"تعذّرت قراءة هذه الصورة. صوّر جدول القيم الغذائية بوضوح وحاول مرة أخرى.",
       confirmBack:"صوّر منتجاً آخر", saving:"جارٍ الحفظ…", correctEmpty:"أدخل قيمة في كل خانة، أو 0 إن لم تكن مذكورة على الملصق.",
@@ -354,6 +355,7 @@
       retakeMsg:"We could not read the numbers clearly. Move closer to the table, keep it straight in the frame, and avoid glare.",
       noTable:"The nutrition table is not in this photo. Turn the pack over to the side that lists energy, fat, sugars and salt, and photograph the whole table.",
       errMsg:"Could not reach the reading service. Check your connection and try again.", timeoutMsg:"Reading took longer than usual. Try again.",
+      busyMsg:"The reading service is busy right now. Try again in a little while.",
       badPhoto:"This photo could not be opened. Try taking it again.",
       declinedMsg:"This photo could not be read. Photograph the nutrition table clearly and try again.",
       confirmBack:"Photograph another product", saving:"Saving…", correctEmpty:"Enter a value in every field, or 0 if it is not on the label.",
@@ -388,6 +390,7 @@
   const store={get:k=>{try{return localStorage.getItem(k)}catch{return null}}, set:(k,v)=>{try{localStorage.setItem(k,v)}catch{}}};
   const deviceId=(()=>{let d=store.get("nm_device"); if(!d){ d=(crypto.randomUUID?crypto.randomUUID():"d-"+Math.random().toString(36).slice(2)); store.set("nm_device",d);} return d;})();
   const isNum=x=>typeof x==="number"&&Number.isFinite(x); const round1=x=>Math.round(x*10)/10;
+  const esc=x=>String(x).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));   // text read from a pack must reach the page as text, never as markup
   if(new URLSearchParams(location.search).get("looks")==="1") document.body.classList.add("dev");
 
   // ---------- language and look ----------
@@ -398,6 +401,7 @@
     document.querySelectorAll(".lang-ar").forEach(b=>b.setAttribute("aria-pressed",lang==="ar")); document.querySelectorAll(".lang-en").forEach(b=>b.setAttribute("aria-pressed",lang==="en"));
     $("ilang-ar").setAttribute("aria-pressed",lang==="ar"); $("ilang-en").setAttribute("aria-pressed",lang==="en");
     if(!busy) hint.textContent=s.hint;
+    if(msgRender) renderMsg();   // a failure message on screen follows the language too
     if(current && !confirm.hidden){ renderConfirm(); const e=$("confirmErr"); if(e.dataset.key) confirmError(e.dataset.key, JSON.parse(e.dataset.missing||"[]")); }
     if(current && !result.hidden) renderResultText();
   }
@@ -450,12 +454,13 @@
     const dataUrl=c.toDataURL("image/jpeg",0.85);
     return { dataUrl, base64:dataUrl.split(",")[1] };
   }
-  let msgAction=null;
-  function showMsg(text, btnLabel, action, withHow=true){
-    $("msgText").textContent=text; $("msgBtn").textContent=btnLabel; msgAction=action; $("msgHow").style.display=withHow?"":"none"; $("msg").classList.add("show"); cam.classList.add("hasmsg");
+  let msgAction=null, msgRender=null;
+  function renderMsg(){ const [text, btnLabel]=msgRender(S[lang]); $("msgText").textContent=text; $("msgBtn").textContent=btnLabel; }
+  function showMsg(render, action, withHow=true){   // render: the current language's strings -> [message, button label], so a language tap redraws the card
+    msgRender=render; renderMsg(); msgAction=action; $("msgHow").style.display=withHow?"":"none"; $("msg").classList.add("show"); cam.classList.add("hasmsg");
     $("preview").classList.remove("show"); $("preview").src=""; $("placeholder").style.display="";
   }
-  function hideMsg(){ $("msg").classList.remove("show"); cam.classList.remove("hasmsg"); }
+  function hideMsg(){ $("msg").classList.remove("show"); cam.classList.remove("hasmsg"); msgRender=null; }
   $("msgBtn").addEventListener("click", ()=>{ hideMsg(); if(msgAction==="guide") openGuide(scan); else $("file").click(); });
   $("msgHow").addEventListener("click", ()=>{ hideMsg(); openGuide(scan); });
 
@@ -465,7 +470,7 @@
     hint.textContent=s.sending;
     let shrunk;
     try { shrunk = await shrink(file); }
-    catch(err){ busy=false; hint.textContent=s.hint; showMsg(s.badPhoto, s.retake, "camera", false); return; }
+    catch(err){ busy=false; hint.textContent=S[lang].hint; showMsg(t=>[t.badPhoto, t.retake], "camera", false); return; }
     const { dataUrl, base64 } = shrunk;
     photoDataUrl=dataUrl; $("preview").src=dataUrl; $("preview").classList.add("show"); $("placeholder").style.display="none";
     cam.classList.add("scanning"); hint.textContent=s.reading;
@@ -479,15 +484,16 @@
       if(!r.ok) failure = r.status===429||r.status===503 ? "busy" : "error";
     }catch(err){ failure = err.name==="AbortError" ? "timeout" : "error"; console.warn("scan failed", err); }
     clearTimeout(slow); clearTimeout(killer); cam.classList.remove("scanning");
-    if(failure){ busy=false; hint.textContent=s.hint; showMsg(failure==="timeout"?s.timeoutMsg:s.errMsg, s.retake, "camera", false); return; }
+    // Messages are built from the language current when they are drawn (t), not the one the scan started in.
+    if(failure){ busy=false; hint.textContent=S[lang].hint; showMsg(t=>[failure==="timeout"?t.timeoutMsg:failure==="busy"?t.busyMsg:t.errMsg, t.retake], "camera", false); return; }   // busy: too many scans or scanning paused, not a connection fault
     const act=data.decision && data.decision.action, rs=(data.decision&&data.decision.reasons)||[];
-    if(act==="not_food"){ busy=false; hint.textContent=s.hint; showMsg(s.notFood, s.retakeOtherSide, "guide"); return; }
-    if(act==="incomplete_label"){ busy=false; hint.textContent=s.hint; const names=(data.decision.missing||[]).map(k=>s.missingNames[k]||k); showMsg(s.incomplete(names.join(lang==="ar"?"، ":", ")), s.retake, "camera"); return; }
+    if(act==="not_food"){ busy=false; hint.textContent=S[lang].hint; showMsg(t=>[t.notFood, t.retakeOtherSide], "guide"); return; }
+    if(act==="incomplete_label"){ busy=false; hint.textContent=S[lang].hint; const miss=data.decision.missing||[]; showMsg(t=>[t.incomplete(miss.map(k=>t.missingNames[k]||k).join(t===S.ar?"، ":", ")), t.retake], "camera"); return; }
     if(act!=="grade" || !data.grade || !data.grade.ok){
-      busy=false; hint.textContent=s.hint;
-      if(rs.includes("no_table_in_photo")) showMsg(s.noTable, s.retakeOtherSide, "guide");
-      else if(rs.includes("reader_declined")) showMsg(s.declinedMsg, s.retake, "camera");
-      else showMsg(s.retakeMsg, s.retake, "camera"); return;
+      busy=false; hint.textContent=S[lang].hint;
+      if(rs.includes("no_table_in_photo")) showMsg(t=>[t.noTable, t.retakeOtherSide], "guide");
+      else if(rs.includes("reader_declined")) showMsg(t=>[t.declinedMsg, t.retake], "camera");
+      else showMsg(t=>[t.retakeMsg, t.retake], "camera"); return;
     }
     current={...data, servingConverted: !!(data.reading && data.reading.basis==="per_serving")}; busy=false; editing=false; confirmError("");
     if(rs.includes("plain_water")) showResult(); else { renderConfirm(); swapTo(scan, confirm); }
@@ -516,7 +522,7 @@
       const wrap = x => (o&&o.ltr) ? `<span dir="ltr">${x}</span>` : x;   // "335 kcal" must not render as "kcal 335" in Arabic
       if(editing && field==="category") cell=`<select id="ed-category">${Object.keys(s.cat).map(c=>`<option value="${c}" ${c===selCat?"selected":""}>${s.cat[c]}</option>`).join("")}</select>`;
       else if(editing && field && o) cell=wrap(`<input id="ed-${field}" type="number" inputmode="decimal" step="0.1" min="0" value="${typed[field]!==undefined?typed[field]:(isNum(val)?val:"")}"> ${o.unit}`);
-      else cell = isNum(val)? wrap(`${val} ${o?o.unit:""}`) : (val||"–");
+      else cell = isNum(val)? wrap(`${val} ${o?o.unit:""}`) : esc(val||"–");   // the product name is the reader's copy of the pack text
       return `<dt>${s.kv[k]}</dt><dd>${cell}</dd>`; }).join("");
     $("confirmGo").style.display = editing ? "none" : "";
     $("confirmFlags").textContent = assumptions(d);
@@ -540,7 +546,7 @@
     // An emptied field is not a correction: the visitor must say 0 to mean "not on the label".
     if(!isNum(kcal) || !isNum(values.sugar_g) || !isNum(values.satfat_g) || !isNum(values.salt_g)){ confirmError("correctEmpty"); return; }
     if(isNum(fat)) values.fat_g=fat; else if(category==="fats"){ confirmError("correctMissing", ["fat_g"]); return; }   // fats and oils are graded on total fat too
-    values.energy_kcal=kcal; values.energy_kJ=Math.round(kcal*4.2);
+    if(kcal!==kcalOf(v)){ values.energy_kcal=kcal; values.energy_kJ=Math.round(kcal*4.2); }   // an untouched calories field must not rewrite the energy the label printed
     const base={...rd, basis: rd.basis==="per_serving"?((rd.category==="beverages"||rd.basis==="per_100ml")?"per_100ml":"per_100g"):rd.basis, serving_size:null, values:{...v, sodium_mg:null}};
     $("confirmEdit").disabled=true; $("confirmEdit").textContent=S[lang].saving; confirmError("");
     let outcome="correctFailed", missing=[];
@@ -571,7 +577,7 @@
     const unit=(rd.basis==="per_100ml"||rd.category==="beverages")?"ml":"g";
     const serv=d.servingConverted===true||rd.basis==="per_serving", sod=!isNum((rd.values||{}).salt_g)&&isNum((rd.values||{}).sodium_mg);
     $("per").textContent = isWater ? s.waterNote : s.per(unit, serv, sod);
-    $("flagsline").textContent = assumptions(d) || (rd.category==="beverages"&&!isWater ? s.bevNoA : "");
+    $("flagsline").textContent = isWater ? "" : (assumptions(d) || (rd.category==="beverages" ? s.bevNoA : ""));   // plain water is A by definition: nothing was counted as zero
     const kcal=kcalOf(v);
     const rows=[["energy_kJ",kcal,"kcal",isNum(v.energy_kJ)?`${v.energy_kJ} kJ`:""],["sugar_g",v.sugar_g,"غ"],["satfat_g",v.satfat_g,"غ"],["salt_g",saltOf(v),"غ"],["fibre_g",v.fibre_g,"غ"],["protein_g",v.protein_g,"غ"],["fat_g",v.fat_g,"غ"],["carb_g",v.carb_g,"غ"]];
     const u=x=>lang==="ar"?x:(x==="غ"?"g":x);

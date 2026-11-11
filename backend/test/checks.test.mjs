@@ -46,6 +46,26 @@ test("kJ/kcal mismatch and sugar above carbohydrate are blocking", () => {
   assert.ok(codes.includes("kJ_kcal_mismatch")); assert.ok(codes.includes("sugar_over_carb"));
 });
 
+test("tiny rounded energies are not a kJ/kcal mismatch: a zero-sugar drink is graded, not refused", () => {
+  // Labels print "1 kJ / 0.2 kcal" or "5 kJ / 1 kcal": the ratio is off only because both numbers are rounded.
+  for (const [kJ, kcal] of [[1, 0.2], [5, 1], [6, 1], [7, 2], [10, 2], [17, 5]]) {
+    const codes = consistencyChecks({ ...cereal.values, energy_kJ: kJ, energy_kcal: kcal, fat_g: 0, satfat_g: 0, carb_g: 0, sugar_g: 0, fibre_g: 0, protein_g: 0, salt_g: 0.02 }).map(c => c.code);
+    assert.ok(!codes.includes("kJ_kcal_mismatch"), `${kJ} kJ / ${kcal} kcal was refused`);
+  }
+  const zero = { ...cereal, product_name: "Cola zero", category: "beverages", basis: "per_100ml", sweeteners_present: true,
+    values: { energy_kJ: 1, energy_kcal: 0.2, fat_g: 0, satfat_g: 0, carb_g: 0, sugar_g: 0, fibre_g: 0, protein_g: 0, salt_g: 0.02, sodium_mg: null } };
+  const per100 = toPer100(zero.values, zero.basis, zero.serving_size);
+  assert.equal(route(zero, consistencyChecks(per100), { attempt: 1 }).action, "grade");
+  assert.equal(computeGrade(rules, toEngineInput(zero, per100).input).grade, "C");   // sweeteners 4 points, nothing else
+});
+
+test("a real kJ/kcal mismatch still blocks, at small and at large energies", () => {
+  for (const [kJ, kcal] of [[1407, 200], [180, 20], [1, 3], [60, 5], [43, 180]]) {
+    const codes = consistencyChecks({ ...cereal.values, energy_kJ: kJ, energy_kcal: kcal }).map(c => c.code);
+    assert.ok(codes.includes("kJ_kcal_mismatch"), `${kJ} kJ / ${kcal} kcal was accepted`);
+  }
+});
+
 test("low confidence on a required field goes to a second pass, then to retake", () => {
   const shaky = { ...cereal, confidence: { ...cereal.confidence, sugar: 0.3 } };
   assert.equal(route(shaky, [], { attempt: 1 }).action, "second_pass");

@@ -25,7 +25,10 @@ export function consistencyChecks(v) {
   range("salt_g", 0, 100); range("sodium_mg", 0, 40000);
   if (isNum(v.energy_kJ) && isNum(v.energy_kcal) && v.energy_kcal > 0) {
     const ratio = v.energy_kJ / v.energy_kcal;
-    if (ratio < 3.8 || ratio > 4.6) add("kJ_kcal_mismatch", "block", `kJ/kcal ratio ${ratio.toFixed(2)} (expected about 4.2)`);
+    // Tiny energies are printed rounded ("1 kJ / 0.2 kcal", "5 kJ / 1 kcal"), which throws the ratio off on a correct read.
+    // A gap of a few kJ is rounding, not a misread; it can only arise below about 55 kJ, so no large error passes through it.
+    const gap = Math.abs(v.energy_kJ - v.energy_kcal * 4.184);
+    if ((ratio < 3.8 || ratio > 4.6) && gap > 5) add("kJ_kcal_mismatch", "block", `kJ/kcal ratio ${ratio.toFixed(2)} (expected about 4.2)`);
   }
   if (isNum(v.sugar_g) && isNum(v.carb_g) && v.sugar_g > v.carb_g + 0.5) add("sugar_over_carb", "block", `sugars ${v.sugar_g} g exceed carbohydrate ${v.carb_g} g`);
   if (isNum(v.satfat_g) && isNum(v.fat_g) && v.satfat_g > v.fat_g + 0.5) add("satfat_over_fat", "block", `saturates ${v.satfat_g} g exceed fat ${v.fat_g} g`);
