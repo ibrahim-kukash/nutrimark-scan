@@ -52,10 +52,13 @@ export function requiredFor(category) {
 export function route(reading, checks, { minConfidence = 0.6, attempt = 1 } = {}) {
   const blocks = checks.filter(c => c.severity === "block");
   const c = reading.confidence || {};
+  const v = reading.values || {};
+  // A label prints salt or sodium, rarely both, and the reader marks the absent one 0. On a sodium-only label the salt
+  // confidence is the sodium figure's. A reader may file that figure under either name, so the higher counts; both low is low.
+  const conf = k => (k === "salt" && !isNum(v.salt_g) && isNum(v.sodium_mg)) ? Math.max(c.sodium ?? 0, c.salt ?? 0) : (c[k] ?? 0);
   const req = requiredFor(reading.category);
   const need = ["energy", "salt", ...req.map(k => k.replace("_g", ""))];
-  const low = need.filter(k => (c[k] ?? 0) < minConfidence);   // a confidence the reader did not give counts as low, never as high
-  const v = reading.values || {};
+  const low = need.filter(k => conf(k) < minConfidence);   // a confidence the reader did not give counts as low, never as high
   const missing = [];
   if (!isNum(v.energy_kJ) && !isNum(v.energy_kcal)) missing.push("energy");
   if (!isNum(v.salt_g) && !isNum(v.sodium_mg)) missing.push("salt");
@@ -79,7 +82,7 @@ export function route(reading, checks, { minConfidence = 0.6, attempt = 1 } = {}
   if (reasons.length === 0) return { action: "grade", reasons: [] };
   // "The label is incomplete" is a claim about a manufacturer's packaging, so it needs evidence that a real table was read:
   // the reader says a table is visible, or at least three values were read with high confidence. A front-of-pack calorie badge gives neither.
-  const confident = k => (c[k] ?? 0) >= 0.9;
+  const confident = k => conf(k) >= 0.9;
   const confidentValues = [["energy", isNum(v.energy_kJ) || isNum(v.energy_kcal)], ["fat", isNum(v.fat_g)], ["carb", isNum(v.carb_g)], ["protein", isNum(v.protein_g)], ["sugar", isNum(v.sugar_g)], ["satfat", isNum(v.satfat_g)], ["salt", isNum(v.salt_g) || isNum(v.sodium_mg)]]
     .filter(([k, present]) => present && confident(k)).length;
   // The reader's own flag is corroboration, never the whole claim: it needs at least two confident values beside it.

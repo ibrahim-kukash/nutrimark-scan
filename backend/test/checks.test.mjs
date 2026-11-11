@@ -72,6 +72,25 @@ test("low confidence on a required field goes to a second pass, then to retake",
   assert.equal(route(shaky, [], { attempt: 2 }).action, "retake");
 });
 
+test("a sodium-only label is judged on the sodium figure's confidence, not on the absent salt line", () => {
+  // US-style panel: per serving, kcal only, sodium printed, no salt line. The reader marks the absent salt line 0.
+  const usStyle = { ...cereal, basis: "per_serving", serving_size: 40,
+    values: { energy_kJ: null, energy_kcal: 170, fat_g: 5, satfat_g: 2.6, carb_g: 29, sugar_g: 19, fibre_g: 1, protein_g: 2, salt_g: null, sodium_mg: 252 } };
+  const conf = (salt, sodium) => ({ ...cereal.confidence, salt, ...(sodium === undefined ? {} : { sodium }) });
+  assert.equal(route({ ...usStyle, confidence: conf(0, 0.95) }, [], { attempt: 1 }).action, "grade");   // sodium read sharply: graded on the first read
+  assert.equal(route({ ...usStyle, confidence: conf(0.9) }, [], { attempt: 1 }).action, "grade");       // a reader that files the sodium figure under 'salt'
+  assert.equal(route({ ...usStyle, confidence: conf(0.9, 0) }, [], { attempt: 1 }).action, "grade");
+  const blurred = { ...usStyle, confidence: conf(0, 0.3) };                                             // the sodium figure itself is blurred
+  assert.deepEqual(route(blurred, [], { attempt: 1 }), { action: "second_pass", reasons: ["low_confidence_salt"] });
+  assert.equal(route(blurred, [], { attempt: 2 }).action, "retake");
+  assert.equal(route({ ...usStyle, confidence: conf(0) }, [], { attempt: 1 }).action, "second_pass");   // no confidence for either figure: low, never high
+});
+
+test("when salt is printed, a sharp sodium confidence does not rescue a blurred salt figure", () => {
+  const shakySalt = { ...cereal, confidence: { ...cereal.confidence, salt: 0.3, sodium: 0.95 } };
+  assert.deepEqual(route(shakySalt, [], { attempt: 1 }), { action: "second_pass", reasons: ["low_confidence_salt"] });
+});
+
 test("missing salt and sodium is a routing reason", () => {
   const noSalt = { ...cereal, values: { ...cereal.values, salt_g: null, sodium_mg: null } };
   const r = route(noSalt, []);
