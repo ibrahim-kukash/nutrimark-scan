@@ -116,12 +116,14 @@
   [dir="rtl"] .kv dd.pn{text-align:left}   /* the cell takes the NAME's own direction (dir=auto), so a long name loses its end, not its beginning; its side of the card stays the page's */
   .kv input{font:inherit;font-size:15px;width:6.5em;text-align:end;padding:6px 8px;border:1px solid var(--hair);border-radius:8px;background:var(--surface);color:var(--ink)}
   .kv select{font:inherit;font-size:14px;padding:6px 8px;border:1px solid var(--hair);border-radius:8px;background:var(--surface);color:var(--ink);max-width:100%}
-  .askq{margin:0;font-size:15px;font-weight:600;line-height:1.5;text-wrap:balance}
+  .askq{margin:0;font-size:15px;font-weight:600;line-height:1.5;text-wrap:balance;white-space:pre-line}   /* a line break in the text is a line break on screen */
   .askq[hidden]{display:none}
   .catpick{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
   .catpick[hidden]{display:none}
   .catpick button{font-size:15px;font-weight:600;padding:12px 8px;border-color:var(--accent);line-height:1.3}
   .catpick button.wide{grid-column:1 / -1}
+  .catpick.list{grid-template-columns:1fr;gap:6px}   /* a list of statements about the drink: one per line */
+  .catpick.list button{padding:10px 8px}
   .catpick button[aria-pressed="true"]{background:var(--ink);color:var(--ground);border-color:var(--ink)}
   .catpick button:disabled{opacity:.55;cursor:default}
   .catpick button[aria-pressed="true"]:disabled{opacity:1}
@@ -349,7 +351,7 @@
       bevPer100g:"الملصق يعلن القيم لكل 100 غ؛ حُسبت كأنها لكل 100 مل.", redMeatGeneral:"نسبة اللحم أقل من 20%؛ حُسب المنتج كغذاء عام.",
       energyConverted:u=>`السعرات الحرارية محوّلة إلى ${u==="ml"?"100 مل":"100 غ"} من حصة الملصق.`,
       askCategory:"لم تظهر فئة المنتج في الصورة. اختر الفئة لحساب الدرجة.",
-      askDrink:"اختر نوع المشروب. راجع المكونات على العبوة.", drinkOpt:{water:"ماء نقي", juice:"عصير 100%", sweeteners:"مُحلّيات غير السكر", none:"مشروب آخر"},
+      askDrinkOne:{juice:"هل المشروب عصير 100%؟\nراجع المكونات على العبوة.", sweeteners:"هل يحتوي المشروب على مُحلّيات غير السكر؟\nراجع المكونات على العبوة.", water:"هل المشروب ماء شرب عادي؟"}, askDrinkAny:"هل ينطبق على المشروب أيٌّ مما يلي؟\nراجع المكونات على العبوة.", drinkOpt:{water:"ماء شرب عادي", juice:"عصير 100%", sweeteners:"يحتوي على مُحلّيات غير السكر"}, drinkNone:"لا شيء مما سبق", yes:"نعم", no:"لا",
       fatsNoFat:"هذا المنتج لا يحتوي على دهون، فلا يمكن أن يكون من فئة الدهون والزيوت والمكسرات والبذور. اختر فئة أخرى.",
       ingredientsNotSeen:"لم تظهر المكونات في الصورة، فلم تُحسب نسبة الفواكه والخضروات.",
       confirmFat:(m,u,conv)=> conv ? `لم تُقرأ قيمة الدهون بوضوح. القيمة محوّلة إلى ${u==="ml"?"100 مل":"100 غ"} من حصة الملصق؛ تحقّق منها وصحّحها ثم احفظ.` : "لم تُقرأ قيمة الدهون بوضوح. تحقّق منها على الملصق، وصحّحها ثم احفظ.",
@@ -393,7 +395,7 @@
       bevPer100g:"The label declares values per 100 g; they were taken as per 100 ml.", redMeatGeneral:"Meat content is under 20%; graded as a general food.",
       energyConverted:u=>`The label prints calories per serving; they were converted to per ${u==="ml"?"100 ml":"100 g"}.`,
       askCategory:"The photo does not show what the product is. Choose its category to get the grade.",
-      askDrink:"What kind of drink is it? Check the ingredients on the pack.", drinkOpt:{water:"Plain water", juice:"100% juice", sweeteners:"Sweeteners other than sugar", none:"Another drink"},
+      askDrinkOne:{juice:"Is it 100% juice?\nCheck the ingredients on the pack.", sweeteners:"Does it contain sweeteners other than sugar?\nCheck the ingredients on the pack.", water:"Is it plain water?"}, askDrinkAny:"Do any of these apply to the drink?\nCheck the ingredients on the pack.", drinkOpt:{water:"Plain water", juice:"100% juice", sweeteners:"Contains sweeteners other than sugar"}, drinkNone:"None of these", yes:"Yes", no:"No",
       fatsNoFat:"This product has no fat, so it cannot be in the fats, oils, nuts and seeds group. Choose another category.",
       ingredientsNotSeen:"The ingredients list is not in the photo, so fruit and vegetable content was not counted.",
       confirmFat:(m,u,conv)=> conv ? `The fat value was not read clearly. It is converted to per ${u==="ml"?"100 ml":"100 g"} from the label's serving: check it, correct it, then save.` : "The fat value was not read clearly. Check it against the label, correct it, then save.",
@@ -596,10 +598,15 @@
     $("confirmFlags").textContent = "";   // everything the grade assumed is listed with the grade, on the result
     // The question, then one large button per answer. Categories: the specific groups first and "general food" last, so it reads as "none of the above".
     const q=$("askQ"), box=$("catPick"); q.hidden=!ask; box.hidden=!ask;
-    q.textContent = ask==="category" ? s.askCategory : ask==="drink" ? s.askDrink : "";
+    // A drink: one fact in question is asked as a yes/no question; two as a short list that ends with "none of these".
+    const facts = ask==="drink" ? (d.options||[]).filter(o=>o!=="none" && s.drinkOpt[o]) : [];
+    const oneFact = facts.length===1;
+    q.textContent = ask==="category" ? s.askCategory : ask==="drink" ? (oneFact ? s.askDrinkOne[facts[0]] : s.askDrinkAny) : "";
+    box.classList.toggle("list", ask==="drink" && !oneFact);
     const btn=(key,label,wide)=>`<button class="secondary${wide?" wide":""}" data-a="${key}" aria-pressed="${busyHere&&key===answerPressed}" ${busyHere?"disabled":""}>${label}</button>`;
     box.innerHTML = ask==="category" ? ["beverages","cheese","fats","red_meat","general"].map(c=>btn(c, s.cat[c], c==="fats")).join("")
-                  : ask==="drink" ? (d.options||[]).filter(o=>s.drinkOpt[o]).map((o,i,all)=>btn(o, s.drinkOpt[o], all.length%2===1 && i===all.length-1)).join("") : "";   // an odd last answer takes the full width
+                  : ask==="drink" ? (oneFact ? btn(facts[0], s.yes) + btn("none", s.no)            // "Yes" sends the fact, "No" sends "none"
+                                             : facts.map(o=>btn(o, s.drinkOpt[o])).join("") + btn("none", s.drinkNone)) : "";
     box.querySelectorAll("button").forEach(b=>b.onclick=()=>{ if(tooSoon()) return; if(current && current.ask==="category") pickCategory(b.dataset.a); else if(current && current.ask==="drink") answerDrink(b.dataset.a); });
     // When the set of controls changes (a question appears, the editor opens, the grade is ready), taps are ignored for a moment.
     const shape=[d.card, ask||"", editing?"edit":"", d.grade&&d.grade.ok?"graded":""].join("|");
