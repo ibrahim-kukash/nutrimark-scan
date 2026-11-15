@@ -14,8 +14,11 @@ ALLOWED_ORIGINS = "https://ibrahim-kukash.github.io,http://127.0.0.1:8888,http:/
 PRIMARY_MODEL = "claude-sonnet-5"
 SECOND_PASS_MODEL = "claude-opus-5"
 GEMINI_MODEL = "gemini-2.5-flash"
-PER_DEVICE_PER_MINUTE = "6"
-PER_DEVICE_PER_DAY = "60"
+# Per network address. A stand's visitors share one address (its Wi-Fi), so these are the stand's limits.
+PER_DEVICE_PER_MINUTE = "30"
+PER_DEVICE_PER_DAY = "1500"
+# Answers and corrections call no reader; a product can need two answers and a correction.
+CORRECTIONS_PER_MINUTE = "90"
 DAILY_SCAN_CAP = "5000"
 KILL_SWITCH = "off"
 READER_TIMEOUT_MS = "30000"

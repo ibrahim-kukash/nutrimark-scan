@@ -101,16 +101,36 @@
   .msg .linkbtn{color:#C9CCE0}
   input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;left:-9999px}
   /* confirm card */
-  .confirm{padding:0 22px 18px;overflow:auto;scrollbar-width:none}
+  .confirm{padding:0 22px 0;overflow:auto;scrollbar-width:none}
+  /* The question, its answers and the buttons stay in view whatever the card holds (a long product name, a note, a
+     short screen): they sit at the end of the card and stick to the bottom edge when the rows above need more room. */
+  .dock{position:sticky;bottom:0;background:var(--ground);margin-top:auto;padding:14px 0 18px;transition:background .35s ease}   /* margin-top:auto: at the bottom of the frame, so a button does not move when the rows above change */
+  .confirm.scrolls .dock::before{content:"";position:absolute;left:0;right:0;bottom:100%;height:14px;background:linear-gradient(180deg,transparent,var(--ground));pointer-events:none}   /* only when rows slide under it: they fade out */
+  .dock .flags{margin:0 0 10px}
   .confirm::-webkit-scrollbar{display:none}
   .confirm h2{margin:6px 0 4px;font-size:19px;font-weight:600}
-  .confirm .sub{margin:0 0 12px;font-size:13px;color:var(--muted)}
-  .kv{display:grid;grid-template-columns:1fr auto;gap:8px 12px;font-size:15px;border-top:1px solid var(--hair);padding-top:10px}
-  .kv dt{color:var(--muted)} .kv dd{margin:0;font-weight:600;font-variant-numeric:tabular-nums;text-align:end}
+  .confirm .sub{margin:0 0 12px;font-size:13px;color:var(--muted);line-height:1.5}
+  .kv{display:grid;grid-template-columns:max-content 1fr;gap:6px 12px;font-size:15px;border-top:1px solid var(--hair);padding-top:10px}   /* the label column keeps its width: a long product name wraps in its own column */
+  .kv dt{color:var(--muted)} .kv dd{margin:0;font-weight:600;font-variant-numeric:tabular-nums;text-align:end;min-width:0}
+  .kv dd.pn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right}   /* a long product name keeps to one line here; the result shows it whole */
+  [dir="rtl"] .kv dd.pn{text-align:left}   /* the cell takes the NAME's own direction (dir=auto), so a long name loses its end, not its beginning; its side of the card stays the page's */
   .kv input{font:inherit;font-size:15px;width:6.5em;text-align:end;padding:6px 8px;border:1px solid var(--hair);border-radius:8px;background:var(--surface);color:var(--ink)}
-  .kv select{font:inherit;font-size:14px;padding:6px 8px;border:1px solid var(--hair);border-radius:8px;background:var(--surface);color:var(--ink)}
+  .kv select{font:inherit;font-size:14px;padding:6px 8px;border:1px solid var(--hair);border-radius:8px;background:var(--surface);color:var(--ink);max-width:100%}
+  .askq{margin:0;font-size:15px;font-weight:600;line-height:1.5;text-wrap:balance}
+  .askq[hidden]{display:none}
+  .catpick{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+  .catpick[hidden]{display:none}
+  .catpick button{font-size:15px;font-weight:600;padding:12px 8px;border-color:var(--accent);line-height:1.3}
+  .catpick button.wide{grid-column:1 / -1}
+  .catpick button[aria-pressed="true"]{background:var(--ink);color:var(--ground);border-color:var(--ink)}
+  .catpick button:disabled{opacity:.55;cursor:default}
+  .catpick button[aria-pressed="true"]:disabled{opacity:1}
   .flags{font-size:12.5px;color:var(--muted);margin:10px 0 0;line-height:1.5}
-  .confirm .actions{display:flex;flex-direction:column;gap:8px;margin-top:16px}
+  .flags:empty{display:none}
+  .confirm .actions{display:flex;flex-direction:column;gap:8px;margin-top:2px}
+  /* a card that asks a question must show every answer without scrolling, also on a short screen */
+  .confirm.asking .kv{gap:6px 12px}
+  .confirm.asking .actions{margin-top:6px}
   /* result */
   .result{padding:0 22px 18px;overflow:auto;scrollbar-width:none}
   .result::-webkit-scrollbar{display:none}
@@ -266,20 +286,24 @@
   <section class="screen confirm" id="confirm" hidden>
     <div class="head" style="padding-inline:0"><div class="brand" data-t="title"></div><div class="lang"><button class="lang-ar">عربي</button><button class="lang-en">EN</button></div></div>
     <h2 data-t="confirmTitle"></h2>
-    <p class="sub" data-t="confirmSub"></p>
+    <p class="sub" id="confirmSub" data-t="confirmSub"></p>
     <dl class="kv" id="kv"></dl>
     <p class="flags" id="confirmFlags"></p>
-    <p class="flags" id="confirmErr" style="color:var(--E)" role="alert"></p>
-    <div class="actions">
-      <button class="primary" id="confirmGo" data-t="confirmGo"></button>
-      <button class="secondary" id="confirmEdit" data-t="confirmEdit"></button>
-      <button class="linkbtn" id="confirmBack" data-t="confirmBack"></button>
+    <div class="dock">
+      <p class="flags" id="confirmErr" style="color:var(--E)" role="alert"></p>
+      <p class="askq" id="askQ" hidden></p>
+      <div class="catpick" id="catPick" hidden></div>
+      <div class="actions">
+        <button class="primary" id="confirmGo" data-t="confirmGo"></button>
+        <button class="secondary" id="confirmEdit" data-t="confirmEdit"></button>
+        <button class="linkbtn" id="confirmBack" data-t="confirmBack"></button>
+      </div>
     </div>
   </section>
 
   <section class="screen result" id="result" hidden>
     <div class="head" style="padding-inline:0"><div class="brand" data-t="title"></div><div class="lang"><button class="lang-ar">عربي</button><button class="lang-en">EN</button></div></div>
-    <div class="product"><img class="thumb" id="thumb" alt=""><div><h2 id="pname"></h2><p id="pmeta"></p></div></div>
+    <div class="product"><img class="thumb" id="thumb" alt=""><div><h2><bdi id="pname"></bdi></h2><p id="pmeta"></p></div></div>
     <div class="band" id="band" aria-label="Nutri-Mark A to E"><b data-g="A">A</b><b data-g="B">B</b><b data-g="C">C</b><b data-g="D">D</b><b data-g="E">E</b></div>
     <div class="bandends result-ends in"><span data-t="bandBest"></span><span data-t="bandWorst"></span></div>
     <div class="verdict"><span class="letter" id="letter">D</span><div class="meaning" id="meaning"></div></div>
@@ -323,11 +347,17 @@
       confirmBack:"صوّر منتجاً آخر", saving:"جارٍ الحفظ…", correctEmpty:"أدخل قيمة في كل خانة، أو 0 إن لم تكن مذكورة على الملصق.",
       correctRejected:"لم تُقبل القيم لأنها تتعارض مع بعضها (مثلاً السكريات أكبر من الكربوهيدرات). راجعها وحاول مرة أخرى.", correctFailed:"تعذّر حفظ التصحيح. حاول مرة أخرى.",
       bevPer100g:"الملصق يعلن القيم لكل 100 غ؛ حُسبت كأنها لكل 100 مل.", redMeatGeneral:"نسبة اللحم أقل من 20%؛ حُسب المنتج كغذاء عام.",
+      energyConverted:u=>`السعرات الحرارية محوّلة إلى ${u==="ml"?"100 مل":"100 غ"} من حصة الملصق.`,
+      askCategory:"لم تظهر فئة المنتج في الصورة. اختر الفئة لحساب الدرجة.",
+      askDrink:"اختر نوع المشروب. راجع المكونات على العبوة.", drinkOpt:{water:"ماء نقي", juice:"عصير 100%", sweeteners:"مُحلّيات غير السكر", none:"مشروب آخر"},
+      fatsNoFat:"هذا المنتج لا يحتوي على دهون، فلا يمكن أن يكون من فئة الدهون والزيوت والمكسرات والبذور. اختر فئة أخرى.",
+      ingredientsNotSeen:"لم تظهر المكونات في الصورة، فلم تُحسب نسبة الفواكه والخضروات.",
+      confirmFat:(m,u,conv)=> conv ? `لم تُقرأ قيمة الدهون بوضوح. القيمة محوّلة إلى ${u==="ml"?"100 مل":"100 غ"} من حصة الملصق؛ تحقّق منها وصحّحها ثم احفظ.` : "لم تُقرأ قيمة الدهون بوضوح. تحقّق منها على الملصق، وصحّحها ثم احفظ.",
       incomplete:m=>`قُرئ الملصق، لكن هذه القيم غير مذكورة فيه: ${m}. ولا يمكن حساب الدرجة بدون هذه القيم. تأكّد أنك صوّرت جدول القيم الغذائية كاملاً؛ فإن كان كاملاً، فالنقص في الملصق نفسه.`,
       missingNames:{sugar_g:"السكريات",satfat_g:"الدهون المشبعة",salt:"الملح",fat_g:"الدهون"},
       confirmTitle:"هذا ما قُرئ من الملصق", confirmSub:"تحقّق من الأرقام قبل حساب الدرجة. يمكنك تصحيح أي قيمة.", confirmGo:"احسب الدرجة", confirmEdit:"صحّح القيم", confirmSave:"احفظ واحسب",
       kv:{product:"المنتج",category:"الفئة",energy:"السعرات الحرارية",fat_g:"الدهون",sugar_g:"السكريات",satfat_g:"الدهون المشبعة",salt:"الملح",basis:"الأساس"},
-      correctMissing:m=>`هذه الفئة تحتاج أيضاً إلى: ${m}. أدخل القيمة كما على الملصق ثم احفظ.`,
+      correctMissing:(m,u,conv)=> conv ? `هذه الفئة تحتاج أيضاً إلى: ${m}. أدخل القيمة لكل ${u==="ml"?"100 مل":"100 غ"} ثم احفظ.` : `هذه الفئة تحتاج أيضاً إلى: ${m}. أدخل القيمة كما على الملصق ثم احفظ.`,
       basisNames:{per_100g:"لكل 100 غ",per_100ml:"لكل 100 مل",per_serving:"لكل حصة"},
       meaning:{A:"الأفضل تغذوياً",B:"جيد تغذوياً",C:"متوسط تغذوياً",D:"ضعيف تغذوياً",E:"الأدنى تغذوياً"},
       meaningSub:{A:"منخفض في السعرات والسكريات والملح",B:"منخفض عموماً في السكريات والملح",C:"كميات معتدلة من السكريات أو الملح",D:"مرتفع نسبياً في السكريات أو الدهون أو الملح",E:"مرتفع في السكريات والدهون المشبعة والملح"},
@@ -335,7 +365,7 @@
       pos:{fibre_g:"ألياف مرتفعة",protein_g:"بروتين مرتفع",fvl_pct:"نسبة عالية من الفواكه والخضروات"},
       noReasons:"لا يبرز في هذا المنتج عنصر مرتفع.", waterLine:"ماء نقي: بلا سكريات وبلا سعرات.", bevNoA:"في المشروبات، الدرجة A للماء النقي فقط.",
       values:{energy_kJ:"سعرات حرارية",satfat_g:"دهون مشبعة",sugar_g:"سكريات",salt_g:"ملح",fibre_g:"ألياف",protein_g:"بروتين",fat_g:"دهون",carb_g:"كربوهيدرات"},
-      cat:{general:"غذاء عام",cheese:"جبن",red_meat:"لحوم حمراء",fats:"دهون وزيوت",beverages:"مشروب"},
+      cat:{general:"غذاء عام",cheese:"جبن",red_meat:"لحوم حمراء",fats:"دهون وزيوت ومكسرات وبذور",beverages:"مشروب"},
       per:(u,serv,sod)=>{const base=u==="ml"?"100 مل":"100 غ"; if(serv&&sod) return `القيم محوّلة إلى ${base} من حصة الملصق، والملح محسوب من الصوديوم`; if(serv) return `القيم محوّلة إلى ${base} من حصة الملصق`; if(sod) return `القيم لكل ${base} كما وردت على الملصق، والملح محسوب من الصوديوم`; return `القيم لكل ${base} كما وردت على الملصق`;},
       waterNote:"ماء شرب عادي: الدرجة A بحكم التعريف، دون جدول قيم غذائية.",
       flagsLine:l=>`غير مذكور في الملصق: ${l}. حُسب صفراً في الدرجة.`, flagNames:{fibre_not_declared_counted_as_0:"الألياف",protein_not_declared_counted_as_0:"البروتين"},
@@ -361,11 +391,17 @@
       confirmBack:"Photograph another product", saving:"Saving…", correctEmpty:"Enter a value in every field, or 0 if it is not on the label.",
       correctRejected:"The values were not accepted because they contradict each other (for example sugars above carbohydrate). Check them and try again.", correctFailed:"The correction could not be saved. Try again.",
       bevPer100g:"The label declares values per 100 g; they were taken as per 100 ml.", redMeatGeneral:"Meat content is under 20%; graded as a general food.",
+      energyConverted:u=>`The label prints calories per serving; they were converted to per ${u==="ml"?"100 ml":"100 g"}.`,
+      askCategory:"The photo does not show what the product is. Choose its category to get the grade.",
+      askDrink:"What kind of drink is it? Check the ingredients on the pack.", drinkOpt:{water:"Plain water", juice:"100% juice", sweeteners:"Sweeteners other than sugar", none:"Another drink"},
+      fatsNoFat:"This product has no fat, so it cannot be in the fats, oils, nuts and seeds group. Choose another category.",
+      ingredientsNotSeen:"The ingredients list is not in the photo, so fruit and vegetable content was not counted.",
+      confirmFat:(m,u,conv)=> conv ? `The fat value was not read clearly. It is converted to per ${u==="ml"?"100 ml":"100 g"} from the label's serving: check it, correct it, then save.` : "The fat value was not read clearly. Check it against the label, correct it, then save.",
       incomplete:m=>`The label was read, but these values are not listed on it: ${m}. The grade cannot be calculated without those values. Check that you photographed the whole nutrition table; if you did, the gap is in the label itself.`,
       missingNames:{sugar_g:"sugars",satfat_g:"saturated fat",salt:"salt",fat_g:"fat"},
       confirmTitle:"This is what was read from the label", confirmSub:"Check the numbers before the grade is calculated. You can correct any value.", confirmGo:"Calculate the grade", confirmEdit:"Correct the values", confirmSave:"Save and calculate",
       kv:{product:"Product",category:"Category",energy:"Calories",fat_g:"Fat",sugar_g:"Sugars",satfat_g:"Saturated fat",salt:"Salt",basis:"Basis"},
-      correctMissing:m=>`This category also needs: ${m}. Enter it as printed on the label, then save.`,
+      correctMissing:(m,u,conv)=> conv ? `This category also needs: ${m}. Enter the value per ${u==="ml"?"100 ml":"100 g"}, then save.` : `This category also needs: ${m}. Enter it as printed on the label, then save.`,
       basisNames:{per_100g:"per 100 g",per_100ml:"per 100 ml",per_serving:"per serving"},
       meaning:{A:"Nutritionally best",B:"Nutritionally good",C:"Nutritionally moderate",D:"Nutritionally poor",E:"Nutritionally lowest"},
       meaningSub:{A:"Low in calories, sugars and salt",B:"Generally low in sugars and salt",C:"Moderate sugars or salt",D:"Relatively high in sugars, fat or salt",E:"High in sugars, saturated fat and salt"},
@@ -373,7 +409,7 @@
       pos:{fibre_g:"High in fibre",protein_g:"High in protein",fvl_pct:"High share of fruit and vegetables"},
       noReasons:"No nutrient stands out as high in this product.", waterLine:"Plain water: no sugars, no calories.", bevNoA:"Among drinks, only plain water reaches A.",
       values:{energy_kJ:"Calories",satfat_g:"Saturates",sugar_g:"Sugars",salt_g:"Salt",fibre_g:"Fibre",protein_g:"Protein",fat_g:"Fat",carb_g:"Carbohydrate"},
-      cat:{general:"General food",cheese:"Cheese",red_meat:"Red meat",fats:"Fats and oils",beverages:"Beverage"},
+      cat:{general:"General food",cheese:"Cheese",red_meat:"Red meat",fats:"Fats, oils, nuts and seeds",beverages:"Beverage"},
       per:(u,serv,sod)=>{const base=u==="ml"?"100 ml":"100 g"; if(serv&&sod) return `Values converted to per ${base} from the label's serving; salt calculated from sodium`; if(serv) return `Values converted to per ${base} from the label's serving`; if(sod) return `Values per ${base} as printed on the label; salt calculated from sodium`; return `Values per ${base} as printed on the label`;},
       waterNote:"Plain drinking water: grade A by definition, no nutrition table needed.",
       flagsLine:l=>`Not declared on the label: ${l}. Counted as zero in the grade.`, flagNames:{fibre_not_declared_counted_as_0:"fibre",protein_not_declared_counted_as_0:"protein"},
@@ -386,10 +422,15 @@
   const $=id=>document.getElementById(id);
   const phone=$("phone"), intro=$("intro"), guide=$("guide"), scan=$("scan"), confirm=$("confirm"), result=$("result"), cam=$("cam"), hint=$("hint");
   let lang="ar", look="verdict", busy=false, timers=[], current=null, shownGrade=null, photoDataUrl=null, editing=false;
+  let answerBusy=null, answerPressed="";   // the card whose answer is on its way to the server, and which button sent it
+  let cardSeq=0;                           // every card gets its own number: the same photo scanned twice comes back with the same scan id
+  let cardShape="", quietUntil=0;          // which controls the card shows, and until when a tap is ignored after they changed
+  const tooSoon=()=>Date.now()<quietUntil; // the second tap of a double tap must not land on a button that has just appeared under the finger
   const later=(fn,ms)=>timers.push(setTimeout(fn,ms)); const clearTimers=()=>{timers.forEach(clearTimeout);timers=[]};
   const store={get:k=>{try{return localStorage.getItem(k)}catch{return null}}, set:(k,v)=>{try{localStorage.setItem(k,v)}catch{}}};
   const deviceId=(()=>{let d=store.get("nm_device"); if(!d){ d=(crypto.randomUUID?crypto.randomUUID():"d-"+Math.random().toString(36).slice(2)); store.set("nm_device",d);} return d;})();
   const isNum=x=>typeof x==="number"&&Number.isFinite(x); const round1=x=>Math.round(x*10)/10;
+  const fmt=x=>isNum(x)?Math.round(x*100)/100:x;   // what is shown: a printed value as printed, a converted one to two decimals. The grade uses the unrounded value.
   const esc=x=>String(x).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));   // text read from a pack must reach the page as text, never as markup
   if(new URLSearchParams(location.search).get("looks")==="1") document.body.classList.add("dev");
 
@@ -416,7 +457,7 @@
   function swapTo(from, to, keepFrom=false){
     clearTimers(); if(!keepFrom) from.classList.add("leaving");
     later(()=>{ if(!keepFrom){ from.hidden=true; from.classList.remove("leaving"); }
-      to.hidden=false; to.classList.add("entering"); to.scrollTop=0;
+      to.hidden=false; to.classList.add("entering"); to.scrollTop=0; if(to===confirm) markScroll();
       requestAnimationFrame(()=>requestAnimationFrame(()=>to.classList.remove("entering"))); },380);
   }
 
@@ -489,79 +530,160 @@
     const act=data.decision && data.decision.action, rs=(data.decision&&data.decision.reasons)||[];
     if(act==="not_food"){ busy=false; hint.textContent=S[lang].hint; showMsg(t=>[t.notFood, t.retakeOtherSide], "guide"); return; }
     if(act==="incomplete_label"){ busy=false; hint.textContent=S[lang].hint; const miss=data.decision.missing||[]; showMsg(t=>[t.incomplete(miss.map(k=>t.missingNames[k]||k).join(t===S.ar?"، ":", ")), t.retake], "camera"); return; }
+    // Every number was read and one thing is left that only the person holding the pack can tell: what kind of product it is
+    // (a close-up of the table does not show it), or, for a drink whose ingredients are not in the photo, what kind of drink
+    // (plain water, 100% juice, with sweeteners: none of it is in the table, and each can change the letter). The card asks.
+    if((act==="ask_category" || act==="ask_drink") && data.reading && data.per100){
+      const drink = act==="ask_drink";
+      current={...data, card:++cardSeq, ask: drink?"drink":"category", options: drink ? (data.decision.options||[]) : null, servingConverted: data.reading.basis==="per_serving", confirmFat:false,
+               pending: drink ? {base:answerBase(data.reading, data.per100, data.reading.category), category:data.reading.category, values:{}} : null};
+      busy=false; editing=false; confirmError("");
+      renderConfirm(); swapTo(scan, confirm); return;
+    }
     if(act!=="grade" || !data.grade || !data.grade.ok){
       busy=false; hint.textContent=S[lang].hint;
       if(rs.includes("no_table_in_photo")) showMsg(t=>[t.noTable, t.retakeOtherSide], "guide");
       else if(rs.includes("reader_declined")) showMsg(t=>[t.declinedMsg, t.retake], "camera");
       else showMsg(t=>[t.retakeMsg, t.retake], "camera"); return;
     }
-    current={...data, servingConverted: !!(data.reading && data.reading.basis==="per_serving")}; busy=false; editing=false; confirmError("");
+    current={...data, card:++cardSeq, ask:null, options:null, pending:null, confirmFat:false, servingConverted: !!(data.reading && data.reading.basis==="per_serving")}; busy=false; editing=false; confirmError("");
     if(rs.includes("plain_water")) showResult(); else { renderConfirm(); swapTo(scan, confirm); }
   }
 
   // ---------- confirm and correct ----------
-  function kcalOf(v){ return isNum(v.energy_kcal)?v.energy_kcal:(isNum(v.energy_kJ)?Math.round(v.energy_kJ/4.184):null); }
-  function saltOf(v){ return isNum(v.salt_g)?v.salt_g:(isNum(v.sodium_mg)?round1(v.sodium_mg/1000*2.5):null); }
+  function kcalOf(v){ return isNum(v.energy_kcal)?fmt(v.energy_kcal):(isNum(v.energy_kJ)?Math.round(v.energy_kJ/4.184):null); }
+  function saltOf(v){ return isNum(v.salt_g)?fmt(v.salt_g):(isNum(v.sodium_mg)?fmt(v.sodium_mg/1000*2.5):null); }
+  // "g" or "ml": the unit the values on the card are per 100 of. A label declared per 100 g stays per 100 g, drink or not.
+  function unitOf(rd, category){ return rd.basis==="per_100ml" ? "ml" : rd.basis==="per_100g" ? "g" : ((category||rd.category)==="beverages" ? "ml" : "g"); }
   function assumptions(d){ // everything the grade assumed, in the visitor's language
     const s=S[lang], f=d.flags||[], out=[];
     const zero=f.map(x=>s.flagNames[x]).filter(Boolean); if(zero.length) out.push(s.flagsLine(zero.join(lang==="ar"?" و":" and ")));
+    if(f.includes("energy_printed_per_serving_converted")) out.push(s.energyConverted(unitOf(d.reading)));
+    if(f.includes("ingredients_not_in_photo_fvl_counted_as_0")) out.push(s.ingredientsNotSeen);
     if(f.includes("beverage_declared_per_100g_taken_as_per_100ml")) out.push(s.bevPer100g);
     if(f.includes("red_meat_below_20pct_graded_as_general")) out.push(s.redMeatGeneral);
     return out.join(" ");
   }
   function renderConfirm(){
     const s=S[lang], d=current, rd=d.reading, v=d.per100||{};
-    const unit=(rd.basis==="per_100ml"||rd.category==="beverages")?"ml":"g";
+    const ask=d.ask||null;                       // "category": the reader could not tell what the product is. "drink": a drink whose ingredients were not in the photo.
+    const busyHere=answerBusy===d.card;          // this card's answer is on its way
+    const cat=(d.pending&&d.pending.category)||rd.category;   // the category the visitor has just picked, before the server has answered
+    const unit=unitOf(rd, cat);
     const G=lang==="ar"?"غ":"g";
-    const rows=[["product",rd.product_name||s.cat[rd.category]||"–",null],["category",s.cat[rd.category]||rd.category,"category"],["energy",kcalOf(v),"energy",{unit:"kcal",ltr:true}],["fat_g",v.fat_g,"fat_g",{unit:G}],["sugar_g",v.sugar_g,"sugar_g",{unit:G}],["satfat_g",v.satfat_g,"satfat_g",{unit:G}],["salt",saltOf(v),"salt",{unit:G}],["basis",s.basisNames[rd.basis==="per_serving"?(unit==="ml"?"per_100ml":"per_100g"):rd.basis]||"–",null]];
+    let rows=[["product",rd.product_name||"",null],["category",s.cat[cat]||cat,"category"],["energy",kcalOf(v),"energy",{unit:"kcal",ltr:true}],["fat_g",fmt(v.fat_g),"fat_g",{unit:G}],["sugar_g",fmt(v.sugar_g),"sugar_g",{unit:G}],["satfat_g",fmt(v.satfat_g),"satfat_g",{unit:G}],["salt",saltOf(v),"salt",{unit:G}],["basis",s.basisNames[rd.basis==="per_serving"?(unit==="ml"?"per_100ml":"per_100g"):rd.basis]||"–",null]];
+    if(ask==="category") rows=rows.filter(r=>r[0]!=="product"&&r[0]!=="category");   // both unknown: the reader's guess is not shown, the visitor chooses
+    else if(editing || !rd.product_name) rows=rows.filter(r=>r[0]!=="product");       // the editor shows what can be changed; a product with no name read has no line of its own (the category is the next line)
     // A re-render while the editor is open (a language tap) must keep what the visitor typed.
     const typed={}; if(editing){ for(const f of ["category","energy","fat_g","sugar_g","satfat_g","salt"]){ const el=$("ed-"+f); if(el) typed[f]=el.value; } }
-    const selCat = typed.category ?? rd.category;
+    const selCat = typed.category ?? cat;
     $("kv").innerHTML = rows.map(([k,val,field,o])=>{
       let cell;
       const wrap = x => (o&&o.ltr) ? `<span dir="ltr">${x}</span>` : x;   // "335 kcal" must not render as "kcal 335" in Arabic
       if(editing && field==="category") cell=`<select id="ed-category">${Object.keys(s.cat).map(c=>`<option value="${c}" ${c===selCat?"selected":""}>${s.cat[c]}</option>`).join("")}</select>`;
       else if(editing && field && o) cell=wrap(`<input id="ed-${field}" type="number" inputmode="decimal" step="0.1" min="0" value="${typed[field]!==undefined?typed[field]:(isNum(val)?val:"")}"> ${o.unit}`);
-      else cell = isNum(val)? wrap(`${val} ${o?o.unit:""}`) : esc(val||"–");   // the product name is the reader's copy of the pack text
-      return `<dt>${s.kv[k]}</dt><dd>${cell}</dd>`; }).join("");
-    $("confirmGo").style.display = editing ? "none" : "";
-    $("confirmFlags").textContent = assumptions(d);
-    $("confirmEdit").textContent = editing ? s.confirmSave : s.confirmEdit;
+      else cell = isNum(val)? wrap(`${val} ${o?o.unit:""}`) : (k==="product" ? `<bdi>${esc(val)}</bdi>` : esc(val||"–"));   // the product name is the reader's copy of the pack text: shown as text, in its own reading order
+      return `<dt>${s.kv[k]}</dt><dd${k==="product"?' class="pn" dir="auto"':""}>${cell}</dd>`; }).join("");
+    // The line under the title: when the calories on the card were converted from a serving, it says so (the number differs
+    // from the label's, and the visitor must see why); otherwise the hint about checking. A question or the open editor replaces it.
+    const convertedNote = (d.flags||[]).includes("energy_printed_per_serving_converted") ? s.energyConverted(unitOf(rd)) : "";
+    $("confirmSub").textContent = convertedNote || s.confirmSub; $("confirmSub").hidden = !!ask || editing;
+    confirm.classList.toggle("asking", !!ask || editing);
+    $("confirmGo").style.display = (editing||ask) ? "none" : "";                  // no grade exists until the question is answered
+    $("confirmEdit").style.display = ask ? "none" : "";
+    $("confirmEdit").disabled = busyHere;
+    $("confirmEdit").textContent = busyHere ? s.saving : (editing ? s.confirmSave : s.confirmEdit);
+    $("confirmFlags").textContent = "";   // everything the grade assumed is listed with the grade, on the result
+    // The question, then one large button per answer. Categories: the specific groups first and "general food" last, so it reads as "none of the above".
+    const q=$("askQ"), box=$("catPick"); q.hidden=!ask; box.hidden=!ask;
+    q.textContent = ask==="category" ? s.askCategory : ask==="drink" ? s.askDrink : "";
+    const btn=(key,label,wide)=>`<button class="secondary${wide?" wide":""}" data-a="${key}" aria-pressed="${busyHere&&key===answerPressed}" ${busyHere?"disabled":""}>${label}</button>`;
+    box.innerHTML = ask==="category" ? ["beverages","cheese","fats","red_meat","general"].map(c=>btn(c, s.cat[c], c==="fats")).join("")
+                  : ask==="drink" ? (d.options||[]).filter(o=>s.drinkOpt[o]).map((o,i,all)=>btn(o, s.drinkOpt[o], all.length%2===1 && i===all.length-1)).join("") : "";   // an odd last answer takes the full width
+    box.querySelectorAll("button").forEach(b=>b.onclick=()=>{ if(tooSoon()) return; if(current && current.ask==="category") pickCategory(b.dataset.a); else if(current && current.ask==="drink") answerDrink(b.dataset.a); });
+    // When the set of controls changes (a question appears, the editor opens, the grade is ready), taps are ignored for a moment.
+    const shape=[d.card, ask||"", editing?"edit":"", d.grade&&d.grade.ok?"graded":""].join("|");
+    if(shape!==cardShape){ if(cardShape.split("|")[0]===String(d.card)) quietUntil=Date.now()+450; cardShape=shape; }
+    markScroll();
+  }
+  // Rows that do not fit slide under the block of buttons; the block then gets a soft edge. Measured whenever the card is drawn, shown or resized.
+  function markScroll(){ confirm.classList.toggle("scrolls", !confirm.hidden && confirm.scrollHeight>confirm.clientHeight+1); }
+  window.addEventListener("resize", markScroll);
+  // The reading as the page sends it back with an answer: the values exactly as the server returned them, already per 100.
+  function answerBase(rd, v, category){
+    return {...rd, basis: rd.basis==="per_serving"?(unitOf(rd, category)==="ml"?"per_100ml":"per_100g"):rd.basis, serving_size:null, energy_basis:"same_as_table", values:{...v}};
+  }
+  // The visitor names the kind of product. For a drink the server may answer that it needs to know what kind of drink first.
+  function pickCategory(category){
+    if(!current || current.ask!=="category" || !category || answerBusy===current.card) return;
+    sendAnswer({base:answerBase(current.reading, current.per100||{}, category), category, values:{}}, category);
+  }
+  // The visitor says what kind of drink it is: plain water, 100% juice, one with sweeteners, or another drink.
+  function answerDrink(option){
+    if(!current || current.ask!=="drink" || !current.pending || !option || answerBusy===current.card) return;
+    sendAnswer({...current.pending, drink:option}, option);
+  }
+  // One road to the server for every answer and every correction; the server grades and replies, or says what it still needs.
+  async function sendAnswer(p, pressed){
+    const scanId=current.scan_id, card=current.card;
+    answerBusy=card; answerPressed=pressed; confirmError(""); renderConfirm();
+    let outcome="correctFailed", list=[], data={};
+    const ctrl=new AbortController(); const killer=setTimeout(()=>ctrl.abort(), 20000);
+    try{
+      const body={scan_id:scanId, device_id:deviceId, reading:p.base, category:p.category, values:p.values||{}};
+      if(p.drink) body.drink=p.drink;
+      const r=await fetch(BACKEND+"/correct",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body),signal:ctrl.signal});
+      try { data=await r.json(); } catch {}
+      if(r.ok && data.grade && data.grade.ok) outcome="";
+      else if(r.status===400 && Array.isArray(data.ask) && data.ask.includes("drink") && Array.isArray(data.options)) outcome="askDrink";   // a drink: the server will not grade it on a guess
+      else if(r.status===400 && Array.isArray(data.confirm) && data.confirm.length){ outcome="confirmFat"; list=data.confirm; }        // total fat was not read clearly
+      else if(r.status===400 && Array.isArray(data.missing) && data.missing.length){                                                   // this category grades on a value the label did not give
+        outcome="correctMissing"; list=data.missing;
+        if(p.category==="fats" && list.length===1 && list[0]==="fat_g" && p.base.values.fat_g===0 && !(p.values && isNum(p.values.fat_g))) outcome="fatsNoFat";   // the label prints 0 g fat: the group does not fit, there is nothing to type
+      }
+      else if(r.status===400) outcome="correctRejected";
+      else if(r.status===429 || r.status===503) outcome="busyMsg";                                                                    // too many requests, or scanning paused: not a failed correction
+    }catch(err){ console.warn("answer failed",err); }
+    clearTimeout(killer);
+    if(answerBusy===card) answerBusy=null;
+    if(!current || current.card!==card){ if(current && !confirm.hidden) renderConfirm(); return; }   // the visitor left this card while the answer was on its way: it is not applied to another product
+    if(!outcome){ current={...current, reading:data.reading, per100:data.per100, grade:data.grade, reasons:data.reasons, flags:data.flags, engine_input:data.engine_input||engineInputFrom(data), ask:null, options:null, pending:null, confirmFat:false}; editing=false; }
+    else if(outcome==="askDrink"){ current={...current, ask:"drink", options:data.options, pending:{base:p.base, category:p.category, values:p.values||{}, fromEditor:!!p.fromEditor}}; outcome=""; }
+    else if(outcome==="correctMissing" || outcome==="confirmFat"){ current={...current, reading:{...p.base, category:p.category}, ask:null, pending:null, confirmFat:outcome==="confirmFat"}; editing=true; }   // open the editor on the chosen category, so the value can be typed or confirmed
+    else if(p.fromEditor) current={...current, ask:null, options:null, pending:null};   // a refused correction goes back to the editor with what was typed
+    renderConfirm(); confirmError(outcome, list);
   }
   function confirmError(key, missing){ // missing: engine field keys, translated on every render so a language tap keeps the message
     const el=$("confirmErr"); el.dataset.key = key || ""; el.dataset.missing = JSON.stringify(missing||[]);
     if(!key){ el.textContent=""; return; }
-    const v=S[lang][key];
-    el.textContent = typeof v==="function" ? v((missing||[]).map(k=>S[lang].missingNames[k]||S[lang].kv[k]||k).join(lang==="ar"?"، ":", ")) : v;
+    const s=S[lang], v=s[key];
+    const names=(missing||[]).map(k=>s.missingNames[k]||s.kv[k]||k).join(lang==="ar"?"، ":", ");
+    el.textContent = typeof v==="function" ? v(names, current?unitOf(current.reading):"g", !!(current&&current.servingConverted)) : v;
+    if(key==="fatsNoFat") $("askQ").hidden=true;   // the message already says "choose another category": the question above the buttons would only repeat it
   }
-  $("confirmGo").addEventListener("click", ()=>{ if(!editing) showResult(true); });
-  $("confirmBack").addEventListener("click", ()=>returnToScan(confirm));
-  $("confirmEdit").addEventListener("click", async ()=>{
+  $("confirmGo").addEventListener("click", ()=>{ if(tooSoon()) return; if(!editing && current && current.grade && current.grade.ok && !current.ask) showResult(true); });
+  $("confirmBack").addEventListener("click", ()=>{ if(tooSoon()) return; returnToScan(confirm); });
+  $("confirmEdit").addEventListener("click", ()=>{
+    if(tooSoon() || !current || current.ask || answerBusy===current.card) return;
     if(!editing){ editing=true; confirmError(""); renderConfirm(); return; }
     const num=id=>{ const el=$(id); if(!el||el.value.trim()==="") return null; const n=parseFloat(el.value); return Number.isFinite(n)?n:null; };
     const rd=current.reading, v=current.per100||{};
-    const values={ sugar_g:num("ed-sugar_g"), satfat_g:num("ed-satfat_g"), salt_g:num("ed-salt") };
-    const kcal=num("ed-energy"), fat=num("ed-fat_g");
+    const shown={energy:kcalOf(v), fat_g:fmt(v.fat_g), sugar_g:fmt(v.sugar_g), satfat_g:fmt(v.satfat_g), salt:saltOf(v)};   // what the fields held when the editor opened
+    const typed={energy:num("ed-energy"), fat_g:num("ed-fat_g"), sugar_g:num("ed-sugar_g"), satfat_g:num("ed-satfat_g"), salt:num("ed-salt")};
     const category=$("ed-category")?$("ed-category").value:rd.category;
     // An emptied field is not a correction: the visitor must say 0 to mean "not on the label".
-    if(!isNum(kcal) || !isNum(values.sugar_g) || !isNum(values.satfat_g) || !isNum(values.salt_g)){ confirmError("correctEmpty"); return; }
-    if(isNum(fat)) values.fat_g=fat; else if(category==="fats"){ confirmError("correctMissing", ["fat_g"]); return; }   // fats and oils are graded on total fat too
-    if(kcal!==kcalOf(v)){ values.energy_kcal=kcal; values.energy_kJ=Math.round(kcal*4.2); }   // an untouched calories field must not rewrite the energy the label printed
-    const base={...rd, basis: rd.basis==="per_serving"?((rd.category==="beverages"||rd.basis==="per_100ml")?"per_100ml":"per_100g"):rd.basis, serving_size:null, values:{...v, sodium_mg:null}};
-    $("confirmEdit").disabled=true; $("confirmEdit").textContent=S[lang].saving; confirmError("");
-    let outcome="correctFailed", missing=[];
-    try{
-      const r=await fetch(BACKEND+"/correct",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({scan_id:current.scan_id,device_id:deviceId,reading:base,category,values})});
-      let data={}; try { data=await r.json(); } catch {}
-      if(r.ok && data.grade && data.grade.ok){
-        current={...current, reading:data.reading, per100:data.per100, grade:data.grade, reasons:data.reasons, flags:data.flags, engine_input:data.engine_input||engineInputFrom(data)};
-        editing=false; outcome="";
-      } else if(r.status===400 && Array.isArray(data.missing) && data.missing.length){ outcome="correctMissing"; missing=data.missing; }   // the engine needs a value this category grades on
-      else if(r.status===400) outcome="correctRejected";
-    }catch(err){ console.warn("correct failed",err); }
-    $("confirmEdit").disabled=false; $("confirmEdit").textContent=S[lang].confirmSave;
-    if(outcome){ confirmError(outcome, missing); return; }   // the editor stays open with the typed values
-    renderConfirm();
+    if(!isNum(typed.energy) || !isNum(typed.sugar_g) || !isNum(typed.satfat_g) || !isNum(typed.salt)){ confirmError("correctEmpty"); return; }
+    if(!isNum(typed.fat_g) && category==="fats"){ confirmError("correctMissing", ["fat_g"]); return; }   // fats and oils are graded on total fat too
+    // Only a field the visitor changed is a correction. An untouched field keeps the value that was read, to its full precision:
+    // the card shows salt worked out from sodium and rounded, and sending that back would replace the label's own figure.
+    const base=answerBase(rd, v, category), values={};
+    if(typed.sugar_g!==shown.sugar_g) values.sugar_g=typed.sugar_g;
+    if(typed.satfat_g!==shown.satfat_g) values.satfat_g=typed.satfat_g;
+    if(isNum(typed.fat_g) && typed.fat_g!==shown.fat_g) values.fat_g=typed.fat_g;
+    if(typed.salt!==shown.salt){ values.salt_g=typed.salt; base.values.sodium_mg=null; }               // a salt figure the visitor typed replaces the label's sodium
+    if(typed.energy!==shown.energy){ values.energy_kcal=typed.energy; values.energy_kJ=Math.round(typed.energy*4.2); base.energy_converted_from_serving=false; }   // calories the visitor typed are theirs, not a conversion
+    if(current.confirmFat && isNum(typed.fat_g)) base.fat_confirmed=true;                              // the visitor has looked at the fat value the reader was unsure of
+    sendAnswer({base, category, values, fromEditor:true}, "save");   // for a drink the server may first ask what kind of drink: the question then appears with the typed values kept
   });
   function engineInputFrom(data){ // the backend returns the engine input for scans; for corrections rebuild it from per100
     const v=data.per100||{}, rd=data.reading;
@@ -571,15 +693,15 @@
   // ---------- result ----------
   function renderResultText(){
     const s=S[lang], d=current, rd=d.reading, g=d.grade, v=d.per100||{};
-    const isWater=(d.decision&&d.decision.reasons||[]).includes("plain_water");
-    $("pname").textContent = rd.product_name || s.cat[rd.category] || "";
-    $("pmeta").textContent = [rd.brand, s.cat[rd.category]].filter(Boolean).join(" · ");
-    const unit=(rd.basis==="per_100ml"||rd.category==="beverages")?"ml":"g";
+    const isWater=(d.decision&&d.decision.reasons||[]).includes("plain_water") || (g.notes||[]).some(n=>/^plain water/.test(n));   // recognised by the reader, or named by the visitor
+    $("pname").textContent = rd.product_name || s.cat[rd.category] || "";   // inside <bdi>: a Latin name on the Arabic page keeps its own reading order
+    $("pmeta").textContent = [rd.brand, rd.product_name ? s.cat[rd.category] : ""].filter(Boolean).join(" · ");   // with no name read, the title above is already the category
+    const unit=unitOf(rd);   // the label's own basis: a drink declared per 100 g is shown per 100 g, and the note below says it was taken as per 100 ml
     const serv=d.servingConverted===true||rd.basis==="per_serving", sod=!isNum((rd.values||{}).salt_g)&&isNum((rd.values||{}).sodium_mg);
     $("per").textContent = isWater ? s.waterNote : s.per(unit, serv, sod);
     $("flagsline").textContent = isWater ? "" : (assumptions(d) || (rd.category==="beverages" ? s.bevNoA : ""));   // plain water is A by definition: nothing was counted as zero
     const kcal=kcalOf(v);
-    const rows=[["energy_kJ",kcal,"kcal",isNum(v.energy_kJ)?`${v.energy_kJ} kJ`:""],["sugar_g",v.sugar_g,"غ"],["satfat_g",v.satfat_g,"غ"],["salt_g",saltOf(v),"غ"],["fibre_g",v.fibre_g,"غ"],["protein_g",v.protein_g,"غ"],["fat_g",v.fat_g,"غ"],["carb_g",v.carb_g,"غ"]];
+    const rows=[["energy_kJ",kcal,"kcal",isNum(v.energy_kJ)?`${fmt(v.energy_kJ)} kJ`:""],["sugar_g",fmt(v.sugar_g),"غ"],["satfat_g",fmt(v.satfat_g),"غ"],["salt_g",saltOf(v),"غ"],["fibre_g",fmt(v.fibre_g),"غ"],["protein_g",fmt(v.protein_g),"غ"],["fat_g",fmt(v.fat_g),"غ"],["carb_g",fmt(v.carb_g),"غ"]];
     const u=x=>lang==="ar"?x:(x==="غ"?"g":x);
     $("values").innerHTML = rows.map(([k,val,un,sub])=>{
       const cell = `${isNum(val)?val:"–"}<small>${isNum(val)?u(un):""}</small>`;

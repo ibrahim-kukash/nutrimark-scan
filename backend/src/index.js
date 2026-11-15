@@ -1,6 +1,7 @@
 // Nutri-Mark scan backend. Cloudflare Worker.
 // POST /scan     { image_base64, media_type, device_id }  -> reading, checks, grade
-// POST /correct  { scan_id, category?, values? }          -> re-graded result, correction logged
+// POST /correct  { scan_id, reading, category?, values?, drink? } -> re-graded result, correction logged
+//                (the visitor's answers: the category, a corrected value, what kind of drink it is)
 // GET  /health
 //
 // The page holds no keys. This worker holds them as secrets and talks to the readers.
@@ -8,7 +9,7 @@
 import rules from "../../engine/rules.json";
 import { computeGrade, reasons } from "../../engine/nutrimark.js";
 import { readWithClaude, readWithGemini } from "./reader.js";
-import { toPer100, consistencyChecks, route, toEngineInput } from "./checks.js";
+import { toPer100, consistencyChecks, route, toEngineInput, prepareReading, drinkOptions, drinkAnswers } from "./checks.js";
 import { checkLimits, sha256Hex, cacheGet, cachePut, logScan, logCorrection } from "./limits.js";
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
@@ -100,8 +101,7 @@ async function handleScan(request, env) {
     if (declined) return json({ scan_id, decision: { action: "retake", reasons: ["reader_declined"] }, passes: [{ error: detail }] }, 200, headers);
     return json({ error: "reader unavailable", detail }, 502, headers);
   }
-  let per100 = toPer100(read.reading.values, read.reading.basis, read.reading.serving_size);
-  let checks = per100 ? consistencyChecks(per100) : [{ code: "basis_unclear", severity: "block", message: "could not put the values on a per-100 basis" }];
+  let { per100, checks, energy_pattern } = prepareReading(read.reading);
   let decision = route(read.reading, checks, { attempt });
   passes.push({ provider: read.provider, model: read.model, usage: read.usage, decision, fallback_from: read.fallback_from });
 
@@ -116,14 +116,21 @@ async function handleScan(request, env) {
     }
     if (secondRead) {
       read = secondRead;
-      per100 = toPer100(read.reading.values, read.reading.basis, read.reading.serving_size);
-      checks = per100 ? consistencyChecks(per100) : [{ code: "basis_unclear", severity: "block", message: "could not put the values on a per-100 basis" }];
+      // patternBefore: the first read's numbers already said "this energy is per serving". Seen twice, it is believed.
+      ({ per100, checks } = prepareReading(read.reading, { attempt, patternBefore: energy_pattern }));
       decision = route(read.reading, checks, { attempt });
       passes.push({ provider: read.provider, model: read.model, usage: read.usage, decision, fallback_from: read.fallback_from });
     } else {
       // The uncertain first read stands as uncertain: ask for a new photo, never re-judge it as if a second reader had agreed.
       decision = { action: "retake", reasons: [...decision.reasons, "second_pass_failed"] };
     }
+  }
+
+  // A drink whose ingredients were not in the photo: plain water, 100% juice and sweeteners are printed nowhere in the
+  // table, and each can change the letter. If one of them would, the visitor is asked before any grade is given.
+  if (decision.action === "grade" && !decision.reasons.includes("plain_water")) {
+    const options = drinkOptions(read.reading, per100, r => grade(r, per100).result.grade);
+    if (options) decision = { action: "ask_drink", reasons: ["drink_facts_unknown"], options };
   }
 
   const out = { scan_id, reading: read.reading, per100, checks, decision, passes };
@@ -135,6 +142,7 @@ async function handleScan(request, env) {
   await logScan(env.STORE, {
     scan_id, ts: new Date().toISOString(), device, category: read.reading.category, basis: read.reading.basis,
     product: read.reading.product_name, language: read.reading.label_language, confidence: read.reading.confidence,
+    serving_size: read.reading.serving_size, energy_basis: read.reading.energy_basis, ingredients_visible: read.reading.ingredients_visible,
     reader_notes: String(read.reading.notes || "").slice(0, 300), category_reason: String(read.reading.category_reason || "").slice(0, 200),
     per100, grade: out.grade?.grade ?? null, score: out.grade?.score ?? null, decision: decision.action, reasons: decision.reasons,
     passes: passes.map(p => ({ model: p.model, provider: p.provider, usage: p.usage })),
@@ -146,22 +154,48 @@ async function handleCorrect(request, env) {
   const headers = cors(env, request);
   let body;
   try { body = await request.json(); } catch { return json({ error: "expected JSON body" }, 400, headers); }
-  const { scan_id, reading, category, values, device_id } = body || {};
-  if (!scan_id || typeof scan_id !== "string" || scan_id.length > 64 || !reading || typeof reading !== "object") return json({ error: "scan_id and the reading to correct are required" }, 400, headers);
+  const { scan_id, reading, category, values, drink } = body || {};
+  const plainObject = x => !!x && typeof x === "object" && !Array.isArray(x);
+  if (!scan_id || typeof scan_id !== "string" || scan_id.length > 64 || !plainObject(reading) || !plainObject(reading.values)) return json({ error: "scan_id and the reading to correct are required" }, 400, headers);
   const ip = request.headers.get("CF-Connecting-IP") || "noip";
-  const refused = await checkLimits(env.STORE, env, ip);
+  const refused = await checkLimits(env.STORE, env, ip, "correct");
   if (refused) return json({ error: refused.reason }, refused.status, headers);
-  if (category && !rules.categories[category]) return json({ error: "unknown category" }, 400, headers);
+  if (category && !Object.hasOwn(rules.categories, category)) return json({ error: "unknown category" }, 400, headers);
+  if (drink !== undefined && !["water", "juice", "sweeteners", "none"].includes(drink)) return json({ error: "unknown answer about the drink" }, 400, headers);
+  const isNum = x => typeof x === "number" && Number.isFinite(x);
   const cleanValues = {};
-  for (const [k, v] of Object.entries(values || {})) { if (k in (reading.values || {}) && typeof v === "number" && Number.isFinite(v) && v >= 0) cleanValues[k] = v; }
-  const corrected = { ...reading, category: category || reading.category, values: { ...reading.values, ...cleanValues } };
+  for (const [k, v] of Object.entries(plainObject(values) ? values : {})) { if (Object.hasOwn(reading.values, k) && isNum(v) && v >= 0) cleanValues[k] = v; }
+  let corrected = { ...reading, category: category || reading.category, values: { ...reading.values, ...cleanValues } };
+  // The category the visitor names is the category. A reader that could not tell what the product is, and did not have the
+  // ingredients list in front of it, cannot know the meat share either: its "less than 20% red meat" must not overrule
+  // the visitor and grade the meat as a general food. A share it read off the ingredients list stands.
+  const readerSure = reading.category !== "unsure" && (reading.confidence?.category ?? 0) >= 0.6;
+  if (category && (category !== reading.category || !readerSure) && reading.ingredients_visible !== true) corrected.red_meat_20_plus = null;
   const per100 = toPer100(corrected.values, corrected.basis, corrected.serving_size);
   if (!per100) return json({ error: "basis still unclear" }, 400, headers);
-  const blocks = consistencyChecks(per100).filter(c => c.severity === "block");
+  // The visitor's answer about a drink (see drinkOptions): applied only where it can be true. "Plain water" is taken
+  // only for a table of zeros; on any other drink it changes nothing.
+  if (drink !== undefined && corrected.category === "beverages") {
+    const answers = drinkAnswers(corrected, per100);
+    corrected = { ...corrected, ...(answers[drink] || {}), drink_answered: true };
+  }
+  // The same rounding allowance the scan used, so a label that passed the scan is not refused when the visitor picks its category.
+  const scale = isNum(reading.rounding_scale) && reading.rounding_scale > 0 ? reading.rounding_scale : 1;
+  const blocks = consistencyChecks(per100, { scale }).filter(c => c.severity === "block");
   if (blocks.length) return json({ error: "values fail consistency checks", checks: blocks }, 400, headers);
+  // Total fat is graded in one group only, so the scan does not vet it while the category is unknown. When the visitor
+  // names that group and the reader was not sure of the figure, the visitor confirms it before it is graded.
+  if ("fat_g" in cleanValues) corrected.fat_confirmed = true;
+  if (corrected.category === "fats" && isNum(per100.fat_g) && corrected.fat_confirmed !== true && (reading.confidence?.fat ?? 0) < 0.6) {
+    return json({ error: "total fat was not read clearly", confirm: ["fat_g"] }, 400, headers);
+  }
+  // A drink is never graded on a guess: if plain water, 100% juice or sweeteners would change the letter and nobody has
+  // looked (the ingredients were not in the photo, the visitor has not answered), the page is told to ask.
+  const options = drinkOptions(corrected, per100, r => grade(r, per100).result.grade);
+  if (options) return json({ error: "the kind of drink is not known", ask: ["drink"], options }, 400, headers);
   const g = grade(corrected, per100);
   if (!g.result.ok) return json({ error: g.result.error || "cannot grade", missing: g.result.missing }, 400, headers);
-  await logCorrection(env.STORE, scan_id, { ts: new Date().toISOString(), category, values, grade: g.result.grade ?? null }, parseInt(env.LOG_TTL_SECONDS || "2592000", 10));
+  await logCorrection(env.STORE, scan_id, { ts: new Date().toISOString(), category, values, drink, grade: g.result.grade ?? null }, parseInt(env.LOG_TTL_SECONDS || "2592000", 10));
   return json({ scan_id, reading: corrected, per100, grade: g.result, reasons: g.reasons, flags: g.flags, engine_input: g.input, corrected: true }, 200, headers);
 }
 
