@@ -37,8 +37,8 @@ function grade(reading, per100) {
 
 // Try each Claude model in the chain, then the other provider. The first reader that answers wins.
 // An overall budget bounds the wait: a visitor never waits for three full timeouts in a row.
-async function readOnce(env, imageBase64, mediaType, models, hint, effort, budgetMs = 45000) {
-  const perTry = parseInt(env.READER_TIMEOUT_MS || "30000", 10);
+async function readOnce(env, imageBase64, mediaType, models, hint, effort, budgetMs = 45000, perTryMs = 0) {
+  const perTry = perTryMs || parseInt(env.READER_TIMEOUT_MS || "30000", 10);
   const started = Date.now();
   const remaining = () => budgetMs - (Date.now() - started);
   const errors = [];
@@ -65,6 +65,7 @@ async function readOnce(env, imageBase64, mediaType, models, hint, effort, budge
 }
 
 async function handleScan(request, env) {
+  const arrived = Date.now();   // one clock for the whole scan (see the second read)
   const headers = cors(env, request);
   let body;
   try { body = await request.json(); } catch { return json({ error: "expected JSON body" }, 400, headers); }
@@ -109,11 +110,21 @@ async function handleScan(request, env) {
     attempt = 2;
     const hint = `A first read was uncertain about: ${decision.reasons.join(", ")}. Read the table again with care and report null for anything not printed.`;
     let secondRead = null;
-    try {
-      secondRead = await readOnce(env, image_base64, media_type, [second], hint, "high", 35000);
-    } catch (err) {
-      passes.push({ model: second, error: String(err.message || err).slice(0, 200) });
-    }
+    // The second read is the careful one (the stronger model, high effort) and the last step before "take another photo",
+    // so it gets more time than a first read: 42 s where a first read gets 30 s.
+    // The page gives up 95 s after it starts sending the photo, and everything this Worker does is on that clock: the
+    // limits, the first read (at most 45 s), this read, the writes after it. So the second read gets what is left of the
+    // scan's own 88 s, never more: an answer that was paid for must still reach the visitor. With under 10 s left for the
+    // read itself it is not started; that read would be paid for and thrown away.
+    const left = parseInt(env.SCAN_BUDGET_MS || "88000", 10) - (Date.now() - arrived);
+    const secondTry = Math.min(parseInt(env.SECOND_PASS_TIMEOUT_MS || "42000", 10), left - 3000);
+    if (secondTry >= 10000) {
+      try {
+        secondRead = await readOnce(env, image_base64, media_type, [second], hint, "high", secondTry + 3000, secondTry);
+      } catch (err) {
+        passes.push({ model: second, error: String(err.message || err).slice(0, 200) });
+      }
+    } else passes.push({ model: second, error: "no time left for a second read" });
     if (secondRead) {
       read = secondRead;
       // patternBefore: the first read's numbers already said "this energy is per serving". Seen twice, it is believed.

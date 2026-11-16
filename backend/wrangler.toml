@@ -22,6 +22,11 @@ CORRECTIONS_PER_MINUTE = "90"
 DAILY_SCAN_CAP = "5000"
 KILL_SWITCH = "off"
 READER_TIMEOUT_MS = "30000"
+# The second, careful read (stronger model, high effort) gets longer than a first read.
+SECOND_PASS_TIMEOUT_MS = "42000"
+# The whole scan, from the moment the request arrives to the answer. The page gives up after 95 s, so the second read
+# gets at most what is left of this.
+SCAN_BUDGET_MS = "88000"
 CACHE_TTL_SECONDS = "604800"
 LOG_TTL_SECONDS = "2592000"
 

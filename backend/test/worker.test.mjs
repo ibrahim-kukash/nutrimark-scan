@@ -28,7 +28,7 @@ let photo = 0;
 const newPhoto = () => Buffer.from("photo " + (++photo)).toString("base64");   // unique bytes: never a cache hit unless the same string is sent again
 /** readings: what the stand-in reader returns, in order (first read, then second read). */
 async function scan(readings, env = makeEnv(), image = newPhoto(), ip) {
-  globalThis.__READS = readings.map(r => structuredClone(r)); globalThis.__CALLS = 0; globalThis.__HINTS = [];
+  globalThis.__READS = readings.map(r => structuredClone(r)); globalThis.__CALLS = 0; globalThis.__HINTS = []; globalThis.__TIMEOUTS = [];
   const r = await post(env, "/scan", { image_base64: image, media_type: "image/jpeg", device_id: "test" }, ip);
   return { ...r, reads: globalThis.__CALLS, env };
 }
@@ -340,4 +340,30 @@ test("probes: the fat confirmation line is 0.6, and thirty answers a minute are 
   const s = await scan([feta], env);
   for (let i = 1; i <= 30; i++) assert.equal((await post(env, "/correct", answer(s.body, { category: "cheese" }))).status, 200, `answer ${i}`);
   assert.equal((await post(env, "/correct", answer(s.body, { category: "cheese" }))).status, 429);
+});
+
+// ---- time for the second read ----
+test("the second, careful read is given 42 s where a first read gets 30 s", async () => {
+  const s = await scan([R({ confidence: { sugar: 0.4 } }), R()]);
+  assert.equal(s.reads, 2); assert.equal(s.body.decision.action, "grade");
+  assert.deepEqual(globalThis.__TIMEOUTS, [30000, 42000]);
+  // The limit comes from the settings.
+  const quick = await scan([R({ confidence: { sugar: 0.4 } }), R()], makeEnv({ SECOND_PASS_TIMEOUT_MS: "20000", READER_TIMEOUT_MS: "10000" }));
+  assert.deepEqual(globalThis.__TIMEOUTS, [10000, 20000]); assert.equal(quick.reads, 2);
+});
+test("the second read never gets more time than the scan has left; with too little left it is not started", async () => {
+  // A scan with 30 s in all, of which the first read takes 0.4 s: the second read gets what is left less 3 s for the
+  // answer (26.6 s), not its full 42 s.
+  const short = await scan([{ ...R({ confidence: { sugar: 0.4 } }), __delay: 400 }, R()], makeEnv({ SCAN_BUDGET_MS: "30000" }));
+  assert.equal(short.reads, 2); assert.equal(short.body.decision.action, "grade");
+  const given = globalThis.__TIMEOUTS[1];
+  assert.ok(given <= 26700 && given > 24000, `the second read was given ${given} ms`);
+  // 12 s in all: under 10 s would be left for the read itself. No second read is paid for; the visitor is asked for a new photo.
+  const none = await scan([R({ confidence: { sugar: 0.4 } }), R()], makeEnv({ SCAN_BUDGET_MS: "12000" }));
+  assert.equal(none.reads, 1); assert.equal(none.body.decision.action, "retake");
+  assert.ok(none.body.decision.reasons.includes("second_pass_failed"), JSON.stringify(none.body.decision.reasons));
+  assert.match(none.body.passes.at(-1).error, /no time left/);
+  // 13 s in all is the smallest scan that still starts one (10 s for the read).
+  const edge = await scan([R({ confidence: { sugar: 0.4 } }), R()], makeEnv({ SCAN_BUDGET_MS: "13500" }));
+  assert.equal(edge.reads, 2); assert.ok(globalThis.__TIMEOUTS[1] >= 10000 && globalThis.__TIMEOUTS[1] <= 10500, `given ${globalThis.__TIMEOUTS[1]} ms`);
 });
