@@ -83,8 +83,9 @@
   .preview{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .3s}
   .preview.show{opacity:1}
   .placeholder{color:#B6BACB;font-size:15px;text-align:center;padding:0 36px;line-height:1.6;z-index:1;max-width:32ch}
-  .camfoot{position:absolute;left:0;right:0;bottom:0;padding:14px 20px 18px;display:flex;flex-direction:column;align-items:center;gap:10px;color:#fff;background:linear-gradient(180deg,transparent,rgba(0,0,0,.6));z-index:2}
-  .hint{font-size:13.5px;opacity:.95;text-align:center;min-height:1.4em;line-height:1.4}
+  .camfoot{position:absolute;left:0;right:0;bottom:0;padding:14px 20px 18px;display:flex;flex-direction:column;align-items:center;gap:10px;color:#fff;background:linear-gradient(180deg,transparent,rgba(0,0,0,.5) 30%,rgba(0,0,0,.7));z-index:2}
+  /* The status line sits on the visitor's photo, and a nutrition table is usually printed on white: the band under it and the shadow keep it readable. */
+  .hint{font-size:13.5px;opacity:.95;text-align:center;min-height:1.4em;line-height:1.4;text-shadow:0 1px 2px rgba(0,0,0,.85),0 0 10px rgba(0,0,0,.7)}
   .shutter{width:72px;height:72px;border-radius:50%;border:4px solid #fff;background:transparent;display:grid;place-items:center;cursor:pointer;padding:0}
   .shutter span{width:54px;height:54px;border-radius:50%;background:#fff;transition:transform .15s ease,background .2s}
   .shutter:active span{transform:scale(.88)}
@@ -337,7 +338,7 @@
       guideTitle:"الجدول عادةً خلف العبوة", guide1:"اقلب العبوة إلى الجهة التي تحمل جدول القيم الغذائية.", guide2:"صوّر الجدول كاملاً داخل الإطار.", guide3:"تجنّب انعكاس الضوء والميل.",
       guideOpen:"فتح الكاميرا", guideSkip:"تخطّي", howTo:"كيف أصوّر الجدول؟",
       placeholder:"اضغط الزر لفتح الكاميرا. صوّر جدول القيم الغذائية خلف العبوة، كاملاً وبوضوح.", hint:"اضغط لفتح الكاميرا", gallery:"أو اختر صورة من صور هاتفك",
-      opening:"اختر الكاميرا لتصوير الجدول، أو صورة من هاتفك…", sending:"جارٍ الإرسال…", reading:"جارٍ تحليل الصورة…", readingSlow:"ما زالت القراءة جارية… قد تستغرق حتى نصف دقيقة.",
+      opening:"اختر الكاميرا لتصوير الجدول، أو صورة من هاتفك…", sending:"جارٍ الإرسال…", reading:"جارٍ تحليل الصورة…", readingSlow:"ما زالت القراءة جارية… قد تستغرق حتى دقيقة.",
       retake:"صوّر مرة أخرى", retakeOtherSide:"صوّر الجهة الأخرى",
       notFood:"لم نجد ملصقاً غذائياً في هذه الصورة. صوّر جدول القيم الغذائية خلف العبوة.",
       retakeMsg:"لم نتمكّن من قراءة الأرقام بوضوح. قرّب الكاميرا من الجدول، واجعله مستقيماً داخل الإطار، وتجنّب انعكاس الضوء.",
@@ -365,7 +366,7 @@
       meaningSub:{A:"منخفض في السعرات والسكريات والملح",B:"منخفض عموماً في السكريات والملح",C:"كميات معتدلة من السكريات أو الملح",D:"مرتفع نسبياً في السكريات أو الدهون أو الملح",E:"مرتفع في السكريات والدهون المشبعة والملح"},
       reasons:{sugar_g:"سكريات مرتفعة",energy_kJ:"سعرات حرارية مرتفعة",satfat_g:"دهون مشبعة مرتفعة",salt_g:"ملح مرتفع",sweeteners:"يحتوي على مُحلّيات",energy_from_satfat_kJ:"دهون مشبعة مرتفعة",satfat_ratio_pct:"نسبة عالية من الدهون المشبعة"},
       pos:{fibre_g:"ألياف مرتفعة",protein_g:"بروتين مرتفع",fvl_pct:"نسبة عالية من الفواكه والخضروات"},
-      noReasons:"لا يبرز في هذا المنتج عنصر مرتفع.", waterLine:"ماء نقي: بلا سكريات وبلا سعرات.", bevNoA:"في المشروبات، الدرجة A للماء النقي فقط.",
+      noReasons:"لا يبرز في هذا المنتج عنصر مرتفع.", waterLine:"ماء شرب عادي: بلا سكريات وبلا سعرات.", bevNoA:"في المشروبات، الدرجة A لماء الشرب العادي فقط.",
       values:{energy_kJ:"سعرات حرارية",satfat_g:"دهون مشبعة",sugar_g:"سكريات",salt_g:"ملح",fibre_g:"ألياف",protein_g:"بروتين",fat_g:"دهون",carb_g:"كربوهيدرات"},
       cat:{general:"غذاء عام",cheese:"جبن",red_meat:"لحوم حمراء",fats:"دهون وزيوت ومكسرات وبذور",beverages:"مشروب"},
       per:(u,serv,sod)=>{const base=u==="ml"?"100 مل":"100 غ"; if(serv&&sod) return `القيم محوّلة إلى ${base} من حصة الملصق، والملح محسوب من الصوديوم`; if(serv) return `القيم محوّلة إلى ${base} من حصة الملصق`; if(sod) return `القيم لكل ${base} كما وردت على الملصق، والملح محسوب من الصوديوم`; return `القيم لكل ${base} كما وردت على الملصق`;},
@@ -381,7 +382,7 @@
       guideTitle:"The table is usually on the back", guide1:"Turn the pack over to the side with the nutrition table.", guide2:"Photograph the whole table inside the frame.", guide3:"Avoid glare and tilt.",
       guideOpen:"Open the camera", guideSkip:"Skip", howTo:"How do I photograph the table?",
       placeholder:"Tap the button to open the camera. Photograph the nutrition table on the back of the pack, whole and in focus.", hint:"Tap to open the camera", gallery:"Or choose a photo from your phone",
-      opening:"Choose the camera to photograph the table, or a photo from your phone…", sending:"Sending…", reading:"Reading your photo…", readingSlow:"Still reading… this can take up to half a minute.",
+      opening:"Choose the camera to photograph the table, or a photo from your phone…", sending:"Sending…", reading:"Reading your photo…", readingSlow:"Still reading… this can take up to a minute.",
       retake:"Take another photo", retakeOtherSide:"Photograph the other side",
       notFood:"No food label in this photo. Photograph the nutrition table on the back of the pack.",
       retakeMsg:"We could not read the numbers clearly. Move closer to the table, keep it straight in the frame, and avoid glare.",
